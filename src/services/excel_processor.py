@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 import logging
 
-from config import Config
+from ..config import Config
 
 logger = logging.getLogger(__name__)
 

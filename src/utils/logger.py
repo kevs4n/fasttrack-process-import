@@ -4,7 +4,7 @@ Logging utility for the Fasttrack Process Model Import Tool
 import logging
 import os
 from datetime import datetime
-from config import Config
+from ..config import Config
 
 def setup_logger(name: str) -> logging.Logger:
     """Setup logger with file and console handlers"""

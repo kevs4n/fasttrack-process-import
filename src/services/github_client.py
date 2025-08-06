@@ -8,7 +8,7 @@ from typing import List, Dict, Any
 from urllib.parse import urljoin
 import json
 
-from config import Config
+from ..config import Config
 
 logger = logging.getLogger(__name__)
 

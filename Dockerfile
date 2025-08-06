@@ -7,7 +7,7 @@ WORKDIR /app
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV PORT=8080
+ENV PORT=8085
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -33,11 +33,11 @@ RUN adduser --disabled-password --gecos '' appuser && chown -R appuser:appuser /
 USER appuser
 
 # Expose port
-EXPOSE 8080
+EXPOSE 8085
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
+    CMD curl -f http://localhost:8085/health || exit 1
 
 # Run the application
-CMD ["python", "src/app.py"]
+CMD ["uvicorn", "src.app:app", "--host", "0.0.0.0", "--port", "8085"]

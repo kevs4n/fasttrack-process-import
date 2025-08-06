@@ -12,7 +12,7 @@ tags:
   - "business-processes"
   - "import-export"
 ports:
-  - container: 8080
+  - container: 8085
     host: 8085
     protocol: tcp
     description: "Main web interface"
@@ -20,7 +20,7 @@ environment:
   - name: "NODE_ENV"
     value: "production"
   - name: "PORT"
-    value: "8080"
+    value: "8085"
 healthcheck:
   endpoint: "/health"
   interval: "30s"
@@ -39,7 +39,7 @@ capabilities:
   - "Work item hierarchy creation"
 dependencies:
   - "Python 3.9+"
-  - "Flask/FastAPI web framework"
+  - "FastAPI web framework"
   - "pandas for Excel processing"
-  - "Azure DevOps Python SDK"
   - "requests for HTTP calls"
+  - "uvicorn ASGI server"
