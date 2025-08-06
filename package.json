@@ -1,0 +1,40 @@
+{
+  "name": "fasttrack-process-import",
+  "version": "1.0.0",
+  "description": "Import Microsoft Dynamics 365 Business Process Models into Azure DevOps using Python backend and JavaScript frontend",
+  "main": "src/app.py",
+  "scripts": {
+    "start": "python src/app.py",
+    "dev": "python src/app.py",
+    "install": "pip install -r requirements.txt"
+  },
+  "keywords": [
+    "fasttrack",
+    "process-modeling",
+    "dynamics365",
+    "azure-devops",
+    "business-processes",
+    "excel-import",
+    "work-items",
+    "machete"
+  ],
+  "author": "MACHETE Platform",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/fasttrack-process-import"
+  },
+  "machete": {
+    "tool": true,
+    "category": "automation",
+    "language": "python",
+    "framework": "flask"
+  },
+  "dependencies": {
+    "python": ">=3.9"
+  },
+  "devDependencies": {},
+  "engines": {
+    "python": ">=3.9"
+  }
+}

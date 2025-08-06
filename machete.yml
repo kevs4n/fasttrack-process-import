@@ -1,0 +1,45 @@
+name: "Fasttrack Process Model Import"
+description: "Import, validate, manage, and export Fasttrack process models from Microsoft Dynamics 365 Business Process Catalog to Azure DevOps"
+icon: "⚡"
+color: "#004e89"
+category: "automation"
+version: "1.0.0"
+author: "MACHETE Platform"
+tags:
+  - "process-modeling"
+  - "dynamics365"
+  - "azure-devops"
+  - "business-processes"
+  - "import-export"
+ports:
+  - container: 8080
+    host: 8085
+    protocol: tcp
+    description: "Main web interface"
+environment:
+  - name: "NODE_ENV"
+    value: "production"
+  - name: "PORT"
+    value: "8080"
+healthcheck:
+  endpoint: "/health"
+  interval: "30s"
+  timeout: "10s"
+  retries: 3
+volumes:
+  - type: "persistent"
+    container: "/app/data"
+    description: "Persistent storage for imported models and configurations"
+capabilities:
+  - "File upload and processing"
+  - "Excel to CSV conversion"
+  - "Azure DevOps integration"
+  - "Process model validation"
+  - "Bulk import management"
+  - "Work item hierarchy creation"
+dependencies:
+  - "Python 3.9+"
+  - "Flask/FastAPI web framework"
+  - "pandas for Excel processing"
+  - "Azure DevOps Python SDK"
+  - "requests for HTTP calls"

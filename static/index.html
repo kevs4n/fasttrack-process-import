@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fasttrack Process Model Import Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #004e89, #0066cc);
+            color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .header .icon {
+            font-size: 3rem;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        .card h2 {
+            color: #004e89;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #eee;
+            margin-bottom: 2rem;
+        }
+
+        .tab-button {
+            background: none;
+            border: none;
+            padding: 1rem 2rem;
+            cursor: pointer;
+            font-size: 1rem;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-button.active {
+            color: #004e89;
+            border-bottom-color: #004e89;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #004e89;
+        }
+
+        .file-upload {
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .file-upload:hover {
+            border-color: #004e89;
+            background: #f9f9ff;
+        }
+
+        .file-upload.dragover {
+            border-color: #004e89;
+            background: #e6f3ff;
+        }
+
+        .btn {
+            background: #004e89;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background: #003366;
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .status {
+            padding: 1rem;
+            border-radius: 5px;
+            margin: 1rem 0;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #004e89;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .models-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .model-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid #eee;
+            transition: all 0.3s ease;
+        }
+
+        .model-card:hover {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .model-meta {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .model-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .github-files {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .github-file {
+            padding: 0.75rem;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .github-file:hover {
+            background: #f8f9fa;
+        }
+
+        .github-file:last-child {
+            border-bottom: none;
+        }
+
+        .file-info {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #eee;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #004e89;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .azure-config {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 1rem;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .status-connected {
+            background: #28a745;
+        }
+
+        .status-disconnected {
+            background: #dc3545;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .tabs {
+                flex-wrap: wrap;
+            }
+            
+            .tab-button {
+                padding: 0.75rem 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <span class="icon">⚡</span>
+                Fasttrack Process Model Import Tool
+            </h1>
+            <p>Import Microsoft Dynamics 365 Business Process Models into Azure DevOps</p>
+        </div>
+
+        <div class="card">
+            <div class="tabs">
+                <button class="tab-button active" onclick="showTab('upload')">📁 Upload & Import</button>
+                <button class="tab-button" onclick="showTab('github')">📂 GitHub Repository</button>
+                <button class="tab-button" onclick="showTab('models')">📋 Imported Models</button>
+                <button class="tab-button" onclick="showTab('azure')">☁️ Azure DevOps</button>
+            </div>
+
+            <!-- Upload Tab -->
+            <div id="upload-tab" class="tab-content active">
+                <h2>Upload Excel File</h2>
+                <div class="file-upload" id="fileUpload">
+                    <div>
+                        <h3>📤 Drop Excel files here or click to browse</h3>
+                        <p>Supported formats: .xlsx, .xls (Max 16MB)</p>
+                        <input type="file" id="fileInput" accept=".xlsx,.xls" hidden>
+                    </div>
+                </div>
+                <div id="uploadStatus"></div>
+                <div id="uploadProgress" class="progress-bar hidden">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+
+            <!-- GitHub Tab -->
+            <div id="github-tab" class="tab-content">
+                <h2>Microsoft Dynamics 365 Business Process Catalog</h2>
+                <p>Download Excel files directly from the official Microsoft repository:</p>
+                <button class="btn" onclick="loadGitHubFiles()">
+                    <span id="githubLoadIcon">🔄</span> Load Available Files
+                </button>
+                
+                <div id="githubFiles" class="github-files hidden"></div>
+                <div id="githubStatus"></div>
+            </div>
+
+            <!-- Models Tab -->
+            <div id="models-tab" class="tab-content">
+                <h2>Imported Process Models</h2>
+                <button class="btn btn-secondary" onclick="loadModels()">🔄 Refresh List</button>
+                
+                <div id="modelsList" class="models-grid"></div>
+                <div id="modelsStatus"></div>
+            </div>
+
+            <!-- Azure DevOps Tab -->
+            <div id="azure-tab" class="tab-content">
+                <h2>Azure DevOps Integration</h2>
+                
+                <div class="azure-config">
+                    <div class="connection-status">
+                        <div class="status-indicator status-disconnected" id="azureStatusIndicator"></div>
+                        <span id="azureStatusText">Not Connected</span>
+                    </div>
+                    
+                    <div class="two-column">
+                        <div>
+                            <div class="form-group">
+                                <label for="azureOrg">Organization</label>
+                                <input type="text" id="azureOrg" placeholder="your-organization">
+                                <small>The organization name from your Azure DevOps URL</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="azureProject">Project</label>
+                                <input type="text" id="azureProject" placeholder="your-project">
+                                <small>The project name in your Azure DevOps organization</small>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div class="form-group">
+                                <label for="azurePat">Personal Access Token</label>
+                                <input type="password" id="azurePat" placeholder="your-pat-token">
+                                <small>Create a PAT with Work Items (read & write) permissions</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <button class="btn" onclick="configureAzureDevOps()">
+                                    <span id="azureConfigIcon">🔧</span> Configure Connection
+                                </button>
+                                <button class="btn btn-secondary" onclick="testAzureConnection()">
+                                    <span id="azureTestIcon">🔍</span> Test Connection
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="azureStatus"></div>
+
+                <div id="importSection" class="hidden">
+                    <h3>Import to Azure DevOps</h3>
+                    <div class="form-group">
+                        <label for="modelSelect">Select Model to Import</label>
+                        <select id="modelSelect">
+                            <option value="">Choose a model...</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-success" onclick="importToAzureDevOps()">
+                        <span id="importIcon">📤</span> Import Work Items
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
