@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  fasttrack-app:
+    build: .
+    container_name: fasttrack-app
+    ports:
+      - "8085:8085"
+    volumes:
+      # Persistent data storage
+      - ./data:/app/data
+      # Allow hot-reloading of static files during development
+      - ./static:/app/static
+      # Logs
+      - ./logs:/app/logs
+    environment:
+      - PORT=8085
+      - PYTHONUNBUFFERED=1
+      - GITHUB_REPO=microsoft/dynamics365patternspractices
+      - GITHUB_PATH=business-process-catalog
+      - LOG_LEVEL=INFO
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - fasttrack-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.fasttrack.rule=Host(`localhost`)"
+      - "traefik.http.services.fasttrack.loadbalancer.server.port=8085"
+
+networks:
+  fasttrack-network:
+    driver: bridge
+
+volumes:
+  fasttrack-data:
+    driver: local

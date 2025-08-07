@@ -148,51 +148,175 @@ class ExcelProcessor:
         return hierarchy
     
     def _convert_to_work_items(self, df: pd.DataFrame, sheet_name: str, model_id: str) -> List[Dict[str, Any]]:
-        """Convert dataframe rows to Azure DevOps work items format"""
+        """Convert dataframe rows to Azure DevOps work items format - capture ALL data from Excel with proper hierarchy"""
         work_items = []
         
         try:
-            # Find relevant columns
-            title_cols = self._find_columns(df, Config.EXCEL_COLUMN_MAPPING['title'])
-            desc_cols = self._find_columns(df, Config.EXCEL_COLUMN_MAPPING['description'])
-            type_cols = self._find_columns(df, Config.EXCEL_COLUMN_MAPPING['type'])
+            # Look for hierarchical title columns (Title 1, Title 2, etc.)
+            title_columns = []
+            for i in range(1, 6):  # Title 1 through Title 5
+                col_name = f"Title {i}"
+                if col_name in df.columns:
+                    title_columns.append(col_name)
             
-            if not title_cols:
-                return work_items
+            # Track the last seen parent at each level (for proper hierarchy)
+            last_parent_at_level = {}  # level -> parent_title
             
-            title_col = title_cols[0]
-            desc_col = desc_cols[0] if desc_cols else None
-            type_col = type_cols[0] if type_cols else None
-            
+            # Process EVERY row in the dataframe to capture all data
             for idx, row in df.iterrows():
-                if pd.notna(row[title_col]) and str(row[title_col]).strip():
-                    # Determine work item type
-                    item_type = 'User Story'  # default
-                    if type_col and pd.notna(row[type_col]):
-                        raw_type = str(row[type_col]).strip()
-                        item_type = Config.WORK_ITEM_TYPE_MAPPING.get(raw_type, 'User Story')
+                # Skip completely empty rows
+                if row.isna().all():
+                    continue
+                
+                # Check if this row has any meaningful content in any column
+                has_content = False
+                for col in df.columns:
+                    if pd.notna(row[col]) and str(row[col]).strip():
+                        has_content = True
+                        break
+                
+                if not has_content:
+                    continue
+                
+                # Find the deepest level that has content in this row
+                primary_title = None
+                hierarchy_level = 1
+                area_path_parts = []
+                
+                if title_columns:
+                    # Find the deepest level with content
+                    for level, title_col in enumerate(title_columns, 1):
+                        if pd.notna(row[title_col]) and str(row[title_col]).strip():
+                            title_value = str(row[title_col]).strip()
+                            
+                            # This becomes our primary title and level
+                            primary_title = title_value
+                            hierarchy_level = level
+                            
+                            # Update the "last seen" parent at this level
+                            last_parent_at_level[level] = title_value
+                            
+                            # Clear any deeper levels since we have a new parent
+                            levels_to_clear = [l for l in last_parent_at_level.keys() if l > level]
+                            for l in levels_to_clear:
+                                del last_parent_at_level[l]
                     
-                    work_item = {
-                        'id': f"{model_id}_{sheet_name}_{idx}",
-                        'title': str(row[title_col]).strip(),
-                        'description': str(row[desc_col]).strip() if desc_col and pd.notna(row[desc_col]) else '',
-                        'type': item_type,
-                        'area_path': sheet_name,
-                        'iteration_path': '',
-                        'priority': 2,  # default medium priority
-                        'state': 'New',
-                        'tags': f"fasttrack-import;{sheet_name.lower().replace(' ', '-')}",
-                        'source_sheet': sheet_name,
-                        'source_row': idx,
-                        'custom_fields': {}
-                    }
+                    # Build area path from the hierarchy (parent chain)
+                    area_path_parts = []
+                    for level in range(1, hierarchy_level + 1):
+                        if level in last_parent_at_level:
+                            area_path_parts.append(last_parent_at_level[level])
+                
+                # If no title found in hierarchy columns, look for any meaningful title-like content
+                if not primary_title:
+                    # Look for any column that might contain a title
+                    potential_title_cols = [col for col in df.columns if 
+                                          any(keyword in col.lower() for keyword in ['title', 'name', 'process', 'activity', 'description'])]
                     
-                    # Add any additional fields from the row
-                    for col in df.columns:
-                        if col not in [title_col, desc_col, type_col] and pd.notna(row[col]):
-                            work_item['custom_fields'][col] = str(row[col])
+                    for col in potential_title_cols:
+                        if pd.notna(row[col]) and str(row[col]).strip():
+                            primary_title = str(row[col]).strip()
+                            break
                     
-                    work_items.append(work_item)
+                    # If still no title, use the first non-empty column
+                    if not primary_title:
+                        for col in df.columns:
+                            if pd.notna(row[col]) and str(row[col]).strip():
+                                primary_title = str(row[col]).strip()
+                                break
+                
+                # Skip if we still couldn't find any title
+                if not primary_title:
+                    continue
+                
+                # Build area path
+                area_path = "\\".join(area_path_parts) if area_path_parts else sheet_name
+                
+                # Determine work item type - first check if there's a Work Item Type column
+                item_type = 'User Story'  # default
+                
+                # Look for work item type in Excel columns first
+                type_cols = ['Work Item Type', 'Type', 'Item Type', 'WorkItemType']
+                for type_col in type_cols:
+                    if type_col in df.columns and pd.notna(row[type_col]):
+                        excel_type = str(row[type_col]).strip()
+                        if excel_type:
+                            # Map Excel types to Azure DevOps types
+                            type_mapping = {
+                                'Epic': 'Epic',
+                                'Feature': 'Feature', 
+                                'User Story': 'User Story',
+                                'Story': 'User Story',
+                                'Task': 'Task',
+                                'Bug': 'Bug',
+                                'Issue': 'Bug',
+                                'Business Process': 'Epic',
+                                'Process Step': 'Feature',
+                                'Activity': 'User Story',
+                                'Sub-Activity': 'Task'
+                            }
+                            item_type = type_mapping.get(excel_type, excel_type)
+                            break
+                
+                # If no type found in columns, fall back to hierarchy level
+                if item_type == 'User Story':  # Still default, so use hierarchy
+                    if hierarchy_level == 1:
+                        item_type = 'Epic'
+                    elif hierarchy_level == 2:
+                        item_type = 'Feature'
+                    elif hierarchy_level == 3:
+                        item_type = 'User Story'
+                    else:
+                        item_type = 'Task'
+                
+                # Get state from State column if available
+                state = 'New'  # default
+                if 'State' in df.columns and pd.notna(row['State']):
+                    state = str(row['State']).strip()
+                
+                # Create work item
+                work_item = {
+                    'id': f"{model_id}_{sheet_name}_{idx}",
+                    'title': primary_title,
+                    'description': '',  # We'll populate this from custom fields if available
+                    'type': item_type,
+                    'area_path': area_path,
+                    'iteration_path': '',
+                    'priority': 2,
+                    'state': state,
+                    'tags': f"fasttrack-import;{sheet_name.lower().replace(' ', '-')};row-{idx}",
+                    'source_sheet': sheet_name,
+                    'source_row': idx,
+                    'hierarchy_level': hierarchy_level,
+                    'custom_fields': {}
+                }
+                
+                # Store ALL columns as custom fields
+                for col in df.columns:
+                    if pd.notna(row[col]) and str(row[col]).strip():
+                        # Clean column name and value
+                        clean_col_name = str(col).strip()
+                        clean_value = str(row[col]).strip()
+                        
+                        # Store everything in custom_fields
+                        work_item['custom_fields'][clean_col_name] = clean_value
+                        
+                        # Also check for description-like content
+                        if any(desc_keyword in clean_col_name.lower() for desc_keyword in ['description', 'detail', 'summary', 'note']):
+                            if not work_item['description']:  # Only set if not already set
+                                work_item['description'] = clean_value
+                
+                # Ensure we have Area Path in custom fields for tree building
+                work_item['custom_fields']['Area Path'] = area_path
+                
+                # Add specific important fields as top-level properties if they exist
+                if 'Catalog Status' in df.columns and pd.notna(row['Catalog Status']):
+                    work_item['catalog_status'] = str(row['Catalog Status']).strip()
+                
+                if 'Process sequence ID' in df.columns and pd.notna(row['Process sequence ID']):
+                    work_item['process_sequence_id'] = str(row['Process sequence ID']).strip()
+                
+                work_items.append(work_item)
         
         except Exception as e:
             logger.warning(f"Error converting sheet {sheet_name} to work items: {str(e)}")
@@ -317,3 +441,191 @@ class ExcelProcessor:
     def get_csv_file_path(self, model_id: str) -> str:
         """Get path to exported CSV file"""
         return os.path.join(self.exports_dir, f"{model_id}_export.csv")
+    
+    def bulk_replace_field_value(self, model_id: str, field_name: str, old_value: str, new_value: str) -> Dict[str, Any]:
+        """Bulk replace field values in work items"""
+        model_data = self.get_model_data(model_id)
+        if not model_data:
+            raise ValueError(f"Model {model_id} not found")
+        
+        work_items = model_data.get('work_items', [])
+        replacement_count = 0
+        
+        for item in work_items:
+            # Check top-level fields first
+            if field_name in item and item[field_name] == old_value:
+                item[field_name] = new_value
+                replacement_count += 1
+            
+            # Check custom fields
+            elif field_name in item.get('custom_fields', {}) and item['custom_fields'][field_name] == old_value:
+                item['custom_fields'][field_name] = new_value
+                replacement_count += 1
+        
+        # Update summary work item types if we changed the 'type' field
+        if field_name == 'type':
+            unique_types = set()
+            for item in work_items:
+                unique_types.add(item.get('type', 'Unknown'))
+            model_data['summary']['work_item_types'] = list(unique_types)
+        
+        # Save the updated model
+        if replacement_count > 0:
+            self._save_model_data(model_id, model_data)
+        
+        logger.info(f"Replaced {replacement_count} instances of '{field_name}': '{old_value}' → '{new_value}' in model {model_id}")
+        
+        return {
+            'model_id': model_id,
+            'field_name': field_name,
+            'old_value': old_value,
+            'new_value': new_value,
+            'replacement_count': replacement_count,
+            'updated_summary': model_data['summary']
+        }
+    
+    def get_field_values(self, model_id: str, field_name: str) -> List[str]:
+        """Get all unique values for a specific field across all work items"""
+        model_data = self.get_model_data(model_id)
+        if not model_data:
+            return []
+        
+        work_items = model_data.get('work_items', [])
+        values = set()
+        
+        for item in work_items:
+            # Check top-level fields
+            if field_name in item and item[field_name]:
+                values.add(str(item[field_name]))
+            
+            # Check custom fields
+            elif field_name in item.get('custom_fields', {}) and item['custom_fields'][field_name]:
+                values.add(str(item['custom_fields'][field_name]))
+        
+        return sorted(list(values))
+    
+    def get_all_field_names(self, model_id: str) -> Dict[str, List[str]]:
+        """Get all available field names in the model"""
+        model_data = self.get_model_data(model_id)
+        if not model_data:
+            return {'top_level': [], 'custom_fields': []}
+        
+        work_items = model_data.get('work_items', [])
+        if not work_items:
+            return {'top_level': [], 'custom_fields': []}
+        
+        # Get top-level field names from the first work item
+        top_level_fields = list(work_items[0].keys())
+        top_level_fields = [f for f in top_level_fields if f != 'custom_fields']
+        
+        # Get all custom field names across all work items
+        custom_fields = set()
+        for item in work_items:
+            if 'custom_fields' in item:
+                custom_fields.update(item['custom_fields'].keys())
+        
+        return {
+            'top_level': sorted(top_level_fields),
+            'custom_fields': sorted(list(custom_fields))
+        }
+    
+    def bulk_delete_items_by_field_value(self, model_id: str, field_name: str, field_value: str) -> Dict[str, Any]:
+        """Bulk delete work items by field value, but preserve items that have children"""
+        model_data = self.get_model_data(model_id)
+        if not model_data:
+            raise ValueError(f"Model {model_id} not found")
+        
+        work_items = model_data.get('work_items', [])
+        original_count = len(work_items)
+        
+        # Find items that match the deletion criteria
+        items_to_delete = []
+        for item in work_items:
+            # Check if item matches deletion criteria
+            matches = False
+            
+            # Check top-level fields
+            if field_name in item and str(item[field_name]) == field_value:
+                matches = True
+            # Check custom fields
+            elif field_name in item.get('custom_fields', {}) and str(item['custom_fields'][field_name]) == field_value:
+                matches = True
+            
+            if matches:
+                items_to_delete.append(item)
+        
+        # Build a hierarchy map to check for children
+        hierarchy_map = {}  # parent_area_path -> [child_items]
+        
+        for item in work_items:
+            area_path = item.get('custom_fields', {}).get('Area Path', item.get('area_path', ''))
+            hierarchy_level = item.get('hierarchy_level', 1)
+            
+            # Find potential children (items with this item as parent in their area path)
+            for other_item in work_items:
+                other_area_path = other_item.get('custom_fields', {}).get('Area Path', other_item.get('area_path', ''))
+                other_level = other_item.get('hierarchy_level', 1)
+                
+                # Check if other_item is a child of this item
+                if (other_level > hierarchy_level and 
+                    other_area_path.startswith(area_path) and 
+                    other_area_path != area_path):
+                    
+                    if area_path not in hierarchy_map:
+                        hierarchy_map[area_path] = []
+                    hierarchy_map[area_path].append(other_item)
+        
+        # Filter out items that have children
+        items_to_actually_delete = []
+        items_protected = []
+        
+        for item in items_to_delete:
+            area_path = item.get('custom_fields', {}).get('Area Path', item.get('area_path', ''))
+            
+            # Check if this item has children
+            has_children = area_path in hierarchy_map and len(hierarchy_map[area_path]) > 0
+            
+            if has_children:
+                items_protected.append(item)
+            else:
+                items_to_actually_delete.append(item)
+        
+        # Remove items that don't have children
+        remaining_items = []
+        deleted_items = []
+        
+        for item in work_items:
+            if item in items_to_actually_delete:
+                deleted_items.append(item)
+            else:
+                remaining_items.append(item)
+        
+        # Update the model data
+        model_data['work_items'] = remaining_items
+        
+        # Update summary
+        unique_types = set()
+        for item in remaining_items:
+            unique_types.add(item.get('type', 'Unknown'))
+        model_data['summary']['work_item_types'] = list(unique_types)
+        model_data['summary']['total_rows'] = len(remaining_items)
+        
+        # Save the updated model
+        deletion_count = len(deleted_items)
+        if deletion_count > 0:
+            self._save_model_data(model_id, model_data)
+        
+        logger.info(f"Deleted {deletion_count} items where '{field_name}' = '{field_value}' in model {model_id}. Protected {len(items_protected)} items with children.")
+        
+        return {
+            'model_id': model_id,
+            'field_name': field_name,
+            'field_value': field_value,
+            'deletion_count': deletion_count,
+            'protected_count': len(items_protected),
+            'original_count': original_count,
+            'remaining_count': len(remaining_items),
+            'deleted_items': [{'id': item['id'], 'title': item['title']} for item in deleted_items],
+            'protected_items': [{'id': item['id'], 'title': item['title'], 'reason': 'has_children'} for item in items_protected],
+            'updated_summary': model_data['summary']
+        }

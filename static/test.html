@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tab Test</title>
+    <style>
+        .tab-button { padding: 10px; margin: 5px; cursor: pointer; background: #f0f0f0; border: 1px solid #ccc; }
+        .tab-button.active { background: #007acc; color: white; }
+        .tab-content { display: none; padding: 20px; border: 1px solid #ccc; margin: 10px 0; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body>
+    <h1>Tab Test Page</h1>
+    
+    <div>
+        <button class="tab-button active" onclick="showTab('test1')">Tab 1</button>
+        <button class="tab-button" onclick="showTab('test2')">Tab 2</button>
+        <button class="tab-button" onclick="showTab('test3')">Tab 3</button>
+    </div>
+    
+    <div id="test1-tab" class="tab-content active">
+        <h2>Content 1</h2>
+        <p>This is the first tab content.</p>
+    </div>
+    
+    <div id="test2-tab" class="tab-content">
+        <h2>Content 2</h2>
+        <p>This is the second tab content.</p>
+    </div>
+    
+    <div id="test3-tab" class="tab-content">
+        <h2>Content 3</h2>
+        <p>This is the third tab content.</p>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            console.log('showTab called with:', tabName);
+            alert('showTab called with: ' + tabName); // For debugging
+            
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            const targetTab = document.getElementById(tabName + '-tab');
+            if (targetTab) {
+                targetTab.classList.add('active');
+                console.log('Activated tab:', tabName + '-tab');
+            } else {
+                console.error('Tab not found:', tabName + '-tab');
+            }
+            
+            // Add active class to the correct tab button
+            const targetButton = document.querySelector(`[onclick="showTab('${tabName}')"]`);
+            if (targetButton) {
+                targetButton.classList.add('active');
+                console.log('Activated button for tab:', tabName);
+            } else {
+                console.error('Button not found for tab:', tabName);
+            }
+        }
+    </script>
+</body>
+</html>

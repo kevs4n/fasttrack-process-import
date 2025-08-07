@@ -61,6 +61,11 @@ class AzureDevOpsClient:
     def _test_connection(self) -> bool:
         """Test Azure DevOps connection"""
         try:
+            # Check for demo mode
+            if self.organization == "demo" and self.project == "demo" and self.pat_token == "demo-token":
+                logger.info("Demo mode activated for Azure DevOps")
+                return True
+            
             # Try to get project information
             url = f"{self.base_url}/{self.organization}/_apis/projects/{self.project}?api-version=7.0"
             
@@ -134,6 +139,34 @@ class AzureDevOpsClient:
             failed_items = []
             
             logger.info(f"Starting import of {len(work_items)} work items")
+            
+            # Check for demo mode
+            if self.organization == "demo" and self.project == "demo":
+                logger.info("Demo mode: Simulating work item creation")
+                # Simulate successful creation of all items
+                for i, item in enumerate(work_items):
+                    created_item = {
+                        'id': f"demo-{i+1}",
+                        'title': item.get('title', f'Demo Item {i+1}'),
+                        'work_item_type': item.get('work_item_type', 'Task'),
+                        'state': 'New',
+                        'url': f"https://demo.visualstudio.com/demo/_workitems/edit/demo-{i+1}",
+                        'created_date': datetime.utcnow().isoformat()
+                    }
+                    imported_items.append(created_item)
+                    
+                result = {
+                    'total_items': len(work_items),
+                    'imported_count': len(imported_items),
+                    'failed_count': 0,
+                    'work_items': imported_items,
+                    'failed_items': [],
+                    'import_date': datetime.utcnow().isoformat(),
+                    'demo_mode': True
+                }
+                
+                logger.info(f"Demo import completed: {len(imported_items)} items simulated")
+                return result
             
             # Create work items in batches (to handle hierarchy properly)
             for item in work_items:

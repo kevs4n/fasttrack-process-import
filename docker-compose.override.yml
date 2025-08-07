@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  fasttrack-app:
+    # Development overrides
+    environment:
+      - LOG_LEVEL=DEBUG
+      - FASTAPI_RELOAD=true
+    volumes:
+      # Mount source code for hot reloading
+      - ./src:/app/src:rw
+      - ./static:/app/static:rw
+    command: ["uvicorn", "src.app:app", "--host", "0.0.0.0", "--port", "8085", "--reload"]
+    stdin_open: true
+    tty: true
+    labels:
+      - "com.docker.compose.service=development"

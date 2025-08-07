@@ -4,373 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fasttrack Process Model Import Tool</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f5f5f5;
-            color: #333;
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #004e89, #0066cc);
-            color: white;
-            padding: 2rem;
-            border-radius: 10px;
-            margin-bottom: 2rem;
-            text-align: center;
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-        }
-
-        .header .icon {
-            font-size: 3rem;
-        }
-
-        .header p {
-            opacity: 0.9;
-            font-size: 1.1rem;
-        }
-
-        .card {
-            background: white;
-            border-radius: 10px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s ease;
-        }
-
-        .card:hover {
-            transform: translateY(-2px);
-        }
-
-        .card h2 {
-            color: #004e89;
-            margin-bottom: 1rem;
-            font-size: 1.5rem;
-        }
-
-        .tabs {
-            display: flex;
-            border-bottom: 2px solid #eee;
-            margin-bottom: 2rem;
-        }
-
-        .tab-button {
-            background: none;
-            border: none;
-            padding: 1rem 2rem;
-            cursor: pointer;
-            font-size: 1rem;
-            color: #666;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s ease;
-        }
-
-        .tab-button.active {
-            color: #004e89;
-            border-bottom-color: #004e89;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: #333;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 0.75rem;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 1rem;
-            transition: border-color 0.3s ease;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #004e89;
-        }
-
-        .file-upload {
-            border: 2px dashed #ddd;
-            border-radius: 10px;
-            padding: 2rem;
-            text-align: center;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .file-upload:hover {
-            border-color: #004e89;
-            background: #f9f9ff;
-        }
-
-        .file-upload.dragover {
-            border-color: #004e89;
-            background: #e6f3ff;
-        }
-
-        .btn {
-            background: #004e89;
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn:hover {
-            background: #003366;
-            transform: translateY(-1px);
-        }
-
-        .btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-        }
-
-        .btn-secondary:hover {
-            background: #545b62;
-        }
-
-        .btn-success {
-            background: #28a745;
-        }
-
-        .btn-success:hover {
-            background: #218838;
-        }
-
-        .btn-danger {
-            background: #dc3545;
-        }
-
-        .btn-danger:hover {
-            background: #c82333;
-        }
-
-        .status {
-            padding: 1rem;
-            border-radius: 5px;
-            margin: 1rem 0;
-        }
-
-        .status.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .status.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .status.info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #004e89;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .models-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 1rem;
-        }
-
-        .model-card {
-            background: white;
-            border-radius: 8px;
-            padding: 1rem;
-            border: 1px solid #eee;
-            transition: all 0.3s ease;
-        }
-
-        .model-card:hover {
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            transform: translateY(-2px);
-        }
-
-        .model-meta {
-            font-size: 0.9rem;
-            color: #666;
-            margin-bottom: 0.5rem;
-        }
-
-        .model-actions {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 1rem;
-        }
-
-        .github-files {
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-
-        .github-file {
-            padding: 0.75rem;
-            border-bottom: 1px solid #eee;
-            cursor: pointer;
-            transition: background 0.2s ease;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .github-file:hover {
-            background: #f8f9fa;
-        }
-
-        .github-file:last-child {
-            border-bottom: none;
-        }
-
-        .file-info {
-            font-size: 0.9rem;
-            color: #666;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: #eee;
-            border-radius: 4px;
-            overflow: hidden;
-            margin: 1rem 0;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: #004e89;
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-
-        .azure-config {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .connection-status {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 1rem;
-        }
-
-        .status-indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-        }
-
-        .status-connected {
-            background: #28a745;
-        }
-
-        .status-disconnected {
-            background: #dc3545;
-        }
-
-        .two-column {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-        }
-
-        @media (max-width: 768px) {
-            .two-column {
-                grid-template-columns: 1fr;
-            }
-            
-            .header h1 {
-                font-size: 2rem;
-                flex-direction: column;
-                gap: 10px;
-            }
-            
-            .tabs {
-                flex-wrap: wrap;
-            }
-            
-            .tab-button {
-                padding: 0.75rem 1rem;
-            }
-        }
-    </style>
+    
+    <!-- External CSS -->
+    <link rel="stylesheet" href="styles/main.css">
 </head>
 <body>
     <div class="container">
@@ -384,10 +20,12 @@
 
         <div class="card">
             <div class="tabs">
-                <button class="tab-button active" onclick="showTab('upload')">📁 Upload & Import</button>
-                <button class="tab-button" onclick="showTab('github')">📂 GitHub Repository</button>
-                <button class="tab-button" onclick="showTab('models')">📋 Imported Models</button>
-                <button class="tab-button" onclick="showTab('azure')">☁️ Azure DevOps</button>
+                <button class="tab-button active" onclick="UIUtils.showTab('upload')">📁 Upload & Import</button>
+                <button class="tab-button" onclick="UIUtils.showTab('github')">📂 GitHub Repository</button>
+                <button class="tab-button" onclick="UIUtils.showTab('models')">📋 Imported Models</button>
+                <button class="tab-button" onclick="UIUtils.showTab('tree')">🌳 Tree View</button>
+                <button class="tab-button" onclick="UIUtils.showTab('bulk')">⚡ Bulk Operations</button>
+                <button class="tab-button" onclick="UIUtils.showTab('azure')">☁️ Azure DevOps</button>
             </div>
 
             <!-- Upload Tab -->
@@ -408,87 +46,281 @@
 
             <!-- GitHub Tab -->
             <div id="github-tab" class="tab-content">
-                <h2>Microsoft Dynamics 365 Business Process Catalog</h2>
-                <p>Download Excel files directly from the official Microsoft repository:</p>
-                <button class="btn" onclick="loadGitHubFiles()">
-                    <span id="githubLoadIcon">🔄</span> Load Available Files
-                </button>
+                <h2>GitHub Repository Access</h2>
                 
-                <div id="githubFiles" class="github-files hidden"></div>
+                <div class="form-group">
+                    <label for="repoSelect">Select Repository:</label>
+                    <select id="repoSelect" class="form-control">
+                        <option value="">Loading repositories...</option>
+                    </select>
+                    <button onclick="window.GitHubManager.loadRepositories()" class="btn btn-secondary">🔄 Refresh</button>
+                </div>
+                
+                <div id="repoFilesSection" style="display: none;">
+                    <h3>Available Files</h3>
+                    <div id="repoFiles"></div>
+                    <div id="githubProgress" class="progress-bar hidden">
+                        <div class="progress-fill" id="githubProgressFill"></div>
+                    </div>
+                </div>
+                
                 <div id="githubStatus"></div>
             </div>
 
             <!-- Models Tab -->
             <div id="models-tab" class="tab-content">
                 <h2>Imported Process Models</h2>
-                <button class="btn btn-secondary" onclick="loadModels()">🔄 Refresh List</button>
+                <button class="btn btn-secondary" onclick="window.ModelsManager.loadModels()">🔄 Refresh List</button>
+                
+                <!-- Model Management Section -->
+                <div class="bulk-section" id="modelManagementImportedSection" style="display: none;">
+                    <h3>📁 Model Management</h3>
+                    <div class="model-management-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="selectedModelInfo">Selected Model:</label>
+                                <div id="selectedModelInfo" class="selected-model-info">
+                                    <span id="selectedModelName">No model selected</span>
+                                    <span id="selectedModelStats"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Operations:</label>
+                                <div class="danger-actions">
+                                    <button onclick="window.ModelsManager.deleteSelectedModel()" class="btn btn-danger">🗑️ Delete Model</button>
+                                </div>
+                                <p style="margin-top: 1rem; color: #6c757d; font-size: 0.9rem;">
+                                    <strong>Note:</strong> Model merge functionality is prepared for Phase 9 implementation.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 
                 <div id="modelsList" class="models-grid"></div>
                 <div id="modelsStatus"></div>
             </div>
 
+            <!-- Tree View Tab -->
+            <div id="tree-tab" class="tab-content">
+                <h2>Model Tree View</h2>
+                
+                <div class="tree-view-controls">
+                    <div class="model-selector">
+                        <label for="treeModelSelect">Select Model:</label>
+                        <select id="treeModelSelect" class="form-control">
+                            <option value="">Select a model...</option>
+                        </select>
+                        <button onclick="window.TreeViewManager.loadModels()" class="btn btn-secondary">🔄 Refresh</button>
+                    </div>
+                </div>
+
+                <div class="tree-container" id="treeContainer">
+                    <div class="tree-placeholder">
+                        <div class="placeholder-icon">🌳</div>
+                        <h3>Select a Model to View Tree Structure</h3>
+                        <p>Choose a model from the dropdown above to visualize its hierarchical structure.</p>
+                    </div>
+                </div>
+                
+                <div id="treeStatus"></div>
+            </div>
+
+            <!-- Bulk Operations Tab -->
+            <div id="bulk-tab" class="tab-content">
+                <h2>⚡ Bulk Operations</h2>
+                
+                <div class="bulk-operations-container">
+                    <!-- Model Selection -->
+                    <div class="bulk-section">
+                        <h3>📋 Select Model</h3>
+                        <div class="form-group">
+                            <select id="modelSelect" class="form-control">
+                                <option value="">Select a model for bulk operations...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Model Data Display -->
+                    <div class="bulk-section" id="modelData" style="display: none;">
+                        <h3>📊 Model Information</h3>
+                        <!-- Content populated by bulk-operations.js -->
+                    </div>
+
+                    <!-- Field Replacement Section -->
+                    <div class="bulk-section" id="fieldReplacementSection" style="display: none;">
+                        <h3>🔄 Field Replacement</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="targetField">Target Field:</label>
+                                <select id="targetField" class="form-control">
+                                    <option value="">Select field to update...</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div id="replacementForm" style="display: none;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="fromValue">Current Value:</label>
+                                    <select id="fromValue" class="form-control">
+                                        <option value="">Select current value...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="toValue">New Value:</label>
+                                    <input type="text" id="toValue" class="form-control" placeholder="Enter new value...">
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button onclick="window.BulkOperations.performFieldReplacement()" class="btn btn-primary">🔄 Replace Values</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hierarchy Deletion Section -->
+                    <div class="bulk-section" id="hierarchySection" style="display: none;">
+                        <h3>🗑️ Hierarchy-Based Deletion</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="hierarchyType">Hierarchy Type:</label>
+                                <select id="hierarchyType" class="form-control">
+                                    <option value="">Select hierarchy type...</option>
+                                    <option value="Area Path">Area Path</option>
+                                    <option value="Iteration Path">Iteration Path</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="hierarchyValue">Hierarchy Value:</label>
+                                <input type="text" id="hierarchyValue" class="form-control" placeholder="Enter path value to delete...">
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button onclick="window.BulkOperations.deleteByHierarchy()" class="btn btn-danger">🗑️ Delete Items</button>
+                        </div>
+                        <div class="warning-message">
+                            <p>⚠️ <strong>Hierarchy Protection:</strong> Items with children will be automatically protected from deletion.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="bulkStatus"></div>
+            </div>
+
             <!-- Azure DevOps Tab -->
             <div id="azure-tab" class="tab-content">
-                <h2>Azure DevOps Integration</h2>
+                <h2>☁️ Azure DevOps Integration</h2>
                 
                 <div class="azure-config">
                     <div class="connection-status">
                         <div class="status-indicator status-disconnected" id="azureStatusIndicator"></div>
-                        <span id="azureStatusText">Not Connected</span>
+                        <span id="azureStatusText">Phase 10 Feature - Coming Soon</span>
                     </div>
                     
                     <div class="two-column">
                         <div>
                             <div class="form-group">
-                                <label for="azureOrg">Organization</label>
-                                <input type="text" id="azureOrg" placeholder="your-organization">
+                                <label for="azureOrganization">Organization:</label>
+                                <input type="text" id="azureOrganization" class="form-control" placeholder="your-organization">
                                 <small>The organization name from your Azure DevOps URL</small>
                             </div>
                             
                             <div class="form-group">
-                                <label for="azureProject">Project</label>
-                                <input type="text" id="azureProject" placeholder="your-project">
+                                <label for="azureProject">Project:</label>
+                                <input type="text" id="azureProject" class="form-control" placeholder="your-project">
                                 <small>The project name in your Azure DevOps organization</small>
                             </div>
                         </div>
                         
                         <div>
                             <div class="form-group">
-                                <label for="azurePat">Personal Access Token</label>
-                                <input type="password" id="azurePat" placeholder="your-pat-token">
+                                <label for="azurePAT">Personal Access Token:</label>
+                                <input type="password" id="azurePAT" class="form-control" placeholder="your-pat-token">
                                 <small>Create a PAT with Work Items (read & write) permissions</small>
                             </div>
                             
                             <div class="form-group">
-                                <button class="btn" onclick="configureAzureDevOps()">
-                                    <span id="azureConfigIcon">🔧</span> Configure Connection
-                                </button>
-                                <button class="btn btn-secondary" onclick="testAzureConnection()">
-                                    <span id="azureTestIcon">🔍</span> Test Connection
-                                </button>
+                                <button class="btn btn-secondary" onclick="window.AzureDevOpsManager.testConnection()">🔍 Test Connection</button>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div id="azureStatus"></div>
-
-                <div id="importSection" class="hidden">
-                    <h3>Import to Azure DevOps</h3>
+                <!-- Model Selection for Azure DevOps -->
+                <div class="bulk-section">
+                    <h3>📋 Select Model for Azure DevOps</h3>
                     <div class="form-group">
-                        <label for="modelSelect">Select Model to Import</label>
-                        <select id="modelSelect">
-                            <option value="">Choose a model...</option>
+                        <select id="azureModelSelect" class="form-control">
+                            <option value="">Choose a model to create work items from...</option>
                         </select>
                     </div>
-                    <button class="btn btn-success" onclick="importToAzureDevOps()">
-                        <span id="importIcon">📤</span> Import Work Items
-                    </button>
                 </div>
+
+                <!-- Model Preview -->
+                <div id="azureModelPreview" style="display: none;">
+                    <!-- Content populated by azure-devops.js -->
+                </div>
+
+                <!-- Create Section -->
+                <div id="azureCreateSection" style="display: none;">
+                    <div class="form-group">
+                        <button class="btn btn-success" onclick="window.AzureDevOpsManager.createWorkItems()">📤 Create Work Items</button>
+                    </div>
+                </div>
+                
+                <div id="azureStatus"></div>
             </div>
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <!-- Operation Results Modal -->
+    <div id="operationResults" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="UIUtils.hideOperationResults()">&times;</span>
+            <div id="operationResultsContent"></div>
+        </div>
+    </div>
+
+    <!-- External JavaScript Modules -->
+    <script src="js/ui-utils.js"></script>
+    <script src="js/models.js"></script>
+    <script src="js/bulk-operations.js"></script>
+    <script src="js/github.js"></script>
+    <script src="js/azure-devops.js"></script>
+    <script src="js/tree-view.js"></script>
+
+    <!-- Initialize Application -->
+    <script>
+        // Initialize the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('FastTrack Process Import Tool - Modular Version Loaded');
+            
+            // Show the default tab
+            UIUtils.showTab('upload');
+            
+            // Load initial data
+            if (window.ModelsManager) {
+                window.ModelsManager.loadModels();
+            }
+            
+            if (window.GitHubManager) {
+                window.GitHubManager.loadRepositories();
+            }
+            
+            if (window.BulkOperations) {
+                window.BulkOperations.loadModels();
+            }
+            
+            if (window.TreeViewManager) {
+                window.TreeViewManager.loadModels();
+            }
+            
+            if (window.AzureDevOpsManager) {
+                window.AzureDevOpsManager.loadModels();
+            }
+        });
+    </script>
 </body>
 </html>

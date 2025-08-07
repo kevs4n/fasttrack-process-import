@@ -75,6 +75,15 @@ class ApiResponse(BaseModel):
     error: Optional[str] = None
     data: Optional[Dict[str, Any]] = None
 
+class FieldReplacementRequest(BaseModel):
+    field_name: str
+    old_value: str
+    new_value: str
+
+class FieldDeletionRequest(BaseModel):
+    field_name: str
+    field_value: str
+
 @app.get("/", response_class=HTMLResponse)
 async def index():
     """Main dashboard"""
@@ -218,6 +227,107 @@ async def download_model_csv(model_id: str):
         logger.error("Error downloading CSV for model %s: %s", model_id, str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/models/{model_id}/tree")
+async def get_model_tree(model_id: str):
+    """Get model data in tree structure"""
+    try:
+        model_data = excel_processor.get_model_data(model_id)
+        if not model_data:
+            raise HTTPException(status_code=404, detail="Model not found")
+        
+        # Build tree structure from work items
+        tree_structure = _build_tree_structure(model_data)
+        
+        return ApiResponse(
+            success=True,
+            data={
+                "model_id": model_id,
+                "filename": model_data.get("filename", "Unknown"),
+                "tree": tree_structure,
+                "summary": model_data.get("summary", {})
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error getting tree structure for model %s: %s", model_id, str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+def _build_tree_structure(model_data):
+    """Build hierarchical tree structure from model data - work items only, no artificial folders"""
+    work_items = model_data.get('work_items', [])
+    
+    # Create a lookup of work items by their area path
+    items_by_path = {}
+    all_nodes = {}
+    
+    # First pass: create all nodes and organize by area path
+    for item in work_items:
+        area_path = item.get('custom_fields', {}).get('Area Path', item.get('area_path', ''))
+        hierarchy_level = item.get('hierarchy_level', 1)
+        
+        node = {
+            "id": item.get('id'),
+            "title": item.get('title', 'Unknown'),
+            "type": item.get('type', 'Unknown'),
+            "state": item.get('state', 'New'),
+            "priority": item.get('priority', 2),
+            "area_path": area_path,
+            "hierarchy_level": hierarchy_level,
+            "description": item.get('description', ''),
+            "work_item_data": item,
+            "children": [],
+            "is_folder": False  # All nodes are work items, not folders
+        }
+        
+        all_nodes[item.get('id')] = node
+        
+        # Group by area path for hierarchy building
+        if area_path not in items_by_path:
+            items_by_path[area_path] = []
+        items_by_path[area_path].append(node)
+    
+    # Second pass: build parent-child relationships
+    root_nodes = []
+    
+    for node in all_nodes.values():
+        area_path = node["area_path"]
+        hierarchy_level = node["hierarchy_level"]
+        
+        # Find parent by looking for items with shorter area paths that are prefixes
+        parent_found = False
+        
+        if area_path:
+            path_parts = area_path.split('\\')
+            
+            # Look for parent in items with one level up
+            if len(path_parts) > 1:
+                parent_path = '\\'.join(path_parts[:-1])
+                
+                # Find the parent item (the one that created this area path)
+                for potential_parent in all_nodes.values():
+                    parent_area_path = potential_parent["area_path"]
+                    parent_level = potential_parent["hierarchy_level"]
+                    
+                    # Parent should have the same path up to the parent level
+                    # and be exactly one level higher
+                    if (parent_area_path == parent_path and 
+                        parent_level == hierarchy_level - 1):
+                        potential_parent["children"].append(node)
+                        parent_found = True
+                        break
+        
+        # If no parent found, this is a root node
+        if not parent_found:
+            root_nodes.append(node)
+    
+    return {
+        "roots": root_nodes,
+        "total_items": len(work_items),
+        "total_folders": 0  # No artificial folders
+    }
+
 @app.post("/api/azure-devops/configure")
 async def configure_azure_devops(config: AzureDevOpsConfig):
     """Configure Azure DevOps connection"""
@@ -274,6 +384,155 @@ async def import_to_azure_devops(model_id: str):
         raise
     except Exception as e:
         logger.error("Error importing model %s to Azure DevOps: %s", model_id, str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/models/{model_id}/update-work-item-types")
+async def update_work_item_types(model_id: str, type_mapping: Dict[str, str]):
+    """Update work item types in bulk for a model"""
+    try:
+        model_data = excel_processor.get_model_data(model_id)
+        if not model_data:
+            raise HTTPException(status_code=404, detail="Model not found")
+        
+        # Update work item types
+        updated_count = 0
+        work_items = model_data.get('work_items', [])
+        
+        for item in work_items:
+            old_type = item.get('type', '')
+            if old_type in type_mapping:
+                item['type'] = type_mapping[old_type]
+                updated_count += 1
+        
+        # Update summary work item types
+        updated_types = set()
+        for item in work_items:
+            updated_types.add(item.get('type', 'Unknown'))
+        
+        model_data['summary']['work_item_types'] = list(updated_types)
+        
+        # Save updated model data
+        excel_processor._save_model_data(model_id, model_data)
+        
+        return ApiResponse(
+            success=True,
+            message=f"Updated {updated_count} work items with new types",
+            data={
+                "updated_count": updated_count,
+                "new_types": list(updated_types),
+                "mappings_applied": type_mapping
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error updating work item types for model %s: %s", model_id, str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/models/{model_id}/replace-field-value")
+async def replace_field_value(model_id: str, request: FieldReplacementRequest):
+    """Replace all occurrences of a field value with a new value"""
+    try:
+        result = excel_processor.bulk_replace_field_value(
+            model_id=model_id,
+            field_name=request.field_name,
+            old_value=request.old_value,
+            new_value=request.new_value
+        )
+        
+        return ApiResponse(
+            success=True,
+            message=f"Replaced {result['replacement_count']} occurrences of '{request.field_name}': '{request.old_value}' → '{request.new_value}'",
+            data=result
+        )
+        
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error("Error replacing field value for model %s: %s", model_id, str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/models/{model_id}/delete-by-field-value")
+async def delete_by_field_value(model_id: str, request: FieldDeletionRequest):
+    """Delete all work items where a field equals a specific value (protects items with children)"""
+    try:
+        result = excel_processor.bulk_delete_items_by_field_value(
+            model_id=model_id,
+            field_name=request.field_name,
+            field_value=request.field_value
+        )
+        
+        message = f"Deleted {result['deletion_count']} items where '{request.field_name}' = '{request.field_value}'"
+        if result['protected_count'] > 0:
+            message += f" (protected {result['protected_count']} items with children)"
+        
+        return ApiResponse(
+            success=True,
+            message=message,
+            data=result
+        )
+        
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error("Error deleting items by field value for model %s: %s", model_id, str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/models/{model_id}/fields")
+async def get_model_fields(model_id: str):
+    """Get all available field names in a model"""
+    try:
+        fields = excel_processor.get_all_field_names(model_id)
+        return ApiResponse(success=True, data=fields)
+        
+    except Exception as e:
+        logger.error("Error getting fields for model %s: %s", model_id, str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/models/{model_id}/field-values/{field_name}")
+async def get_field_values(model_id: str, field_name: str):
+    """Get all unique values for a specific field"""
+    try:
+        values = excel_processor.get_field_values(model_id, field_name)
+        return ApiResponse(success=True, data={"field_name": field_name, "values": values})
+        
+    except Exception as e:
+        logger.error("Error getting field values for model %s, field %s: %s", model_id, field_name, str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/models/{model_id}")
+async def delete_model(model_id: str):
+    """Delete a complete model and all its data"""
+    try:
+        # Check if model exists
+        model_data = excel_processor.get_model_data(model_id)
+        if not model_data:
+            raise HTTPException(status_code=404, detail=f"Model {model_id} not found")
+        
+        # Delete the model file
+        import os
+        model_file_path = os.path.join(excel_processor.models_dir, f"{model_id}.json")
+        if os.path.exists(model_file_path):
+            os.remove(model_file_path)
+            logger.info(f"Deleted model file: {model_file_path}")
+        
+        # Delete any associated CSV export file if it exists
+        csv_file_path = excel_processor.get_csv_file_path(model_id)
+        if os.path.exists(csv_file_path):
+            os.remove(csv_file_path)
+            logger.info(f"Deleted CSV file: {csv_file_path}")
+        
+        return ApiResponse(
+            success=True, 
+            message=f"Model '{model_data['filename']}' deleted successfully",
+            data={"deleted_model_id": model_id, "filename": model_data['filename']}
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error deleting model %s: %s", model_id, str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/azure-devops/status")

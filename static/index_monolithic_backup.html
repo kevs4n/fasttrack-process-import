@@ -1,0 +1,2571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fasttrack Process Model Import Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #004e89, #0066cc);
+            color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .header .icon {
+            font-size: 3rem;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        .card h2 {
+            color: #004e89;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #eee;
+            margin-bottom: 2rem;
+        }
+
+        .tab-button {
+            background: none;
+            border: none;
+            padding: 1rem 2rem;
+            cursor: pointer;
+            font-size: 1rem;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-button.active {
+            color: #004e89;
+            border-bottom-color: #004e89;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #004e89;
+        }
+
+        .file-upload {
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .file-upload:hover {
+            border-color: #004e89;
+            background: #f9f9ff;
+        }
+
+        .file-upload.dragover {
+            border-color: #004e89;
+            background: #e6f3ff;
+        }
+
+        .btn {
+            background: #004e89;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background: #003366;
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .status {
+            padding: 1rem;
+            border-radius: 5px;
+            margin: 1rem 0;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #004e89;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .models-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .model-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid #eee;
+            transition: all 0.3s ease;
+        }
+
+        .model-card:hover {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .model-meta {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .model-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .github-files {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .github-file {
+            padding: 0.75rem;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .github-file:hover {
+            background: #f8f9fa;
+        }
+
+        .github-file:last-child {
+            border-bottom: none;
+        }
+
+        .file-info {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #eee;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #004e89;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .azure-config {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 1rem;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .status-connected {
+            background: #28a745;
+        }
+
+        .status-disconnected {
+            background: #dc3545;
+        }
+
+        /* Tree View Styles */
+        .tree-view-controls {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .model-selector {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .model-selector label {
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .model-selector select {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+        }
+
+        .tree-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .tree-info {
+            background: #e3f2fd;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid #2196f3;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tree-container {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            min-height: 400px;
+            max-height: 600px;
+            overflow: auto;
+            padding: 1rem;
+        }
+
+        .tree-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #666;
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .placeholder-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .tree-node {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .tree-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            margin: 2px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .tree-item:hover {
+            background: #f0f8ff;
+            border-left-color: #2196f3;
+        }
+
+        .tree-item.selected {
+            background: #e3f2fd;
+            border-left-color: #1976d2;
+        }
+
+        .tree-item.folder {
+            font-weight: 600;
+            background: #f8f9fa;
+            border-left-color: #6c757d;
+        }
+
+        .tree-item.folder:hover {
+            background: #e9ecef;
+        }
+
+        .tree-toggle {
+            display: inline-block;
+            width: 20px;
+            text-align: center;
+            cursor: pointer;
+            user-select: none;
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        .tree-icon {
+            margin: 0 8px;
+            font-size: 1.1em;
+        }
+
+        .tree-label {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tree-title {
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .tree-meta {
+            font-size: 0.8em;
+            color: #666;
+            display: flex;
+            gap: 1rem;
+        }
+
+        .tree-children {
+            margin-left: 20px;
+            border-left: 1px dashed #ddd;
+            padding-left: 10px;
+        }
+
+        .tree-children.collapsed {
+            display: none;
+        }
+
+        .tree-details {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .work-item-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .detail-group {
+            background: white;
+            padding: 1rem;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+        }
+
+        .detail-group h4 {
+            margin: 0 0 0.5rem 0;
+            color: #495057;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-value {
+            color: #212529;
+            word-break: break-word;
+        }
+
+        .work-item-type-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .work-item-type-userstory { background: #d1ecf1; color: #0c5460; }
+        .work-item-type-task { background: #d4edda; color: #155724; }
+        .work-item-type-bug { background: #f8d7da; color: #721c24; }
+        .work-item-type-feature { background: #fff3cd; color: #856404; }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .github-file {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            margin-bottom: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .github-file:hover {
+            background: #f8f9fa;
+            border-color: #004e89;
+        }
+
+        .github-file.selected {
+            background: #e6f3ff;
+            border-color: #004e89;
+        }
+
+        .github-file input[type="checkbox"] {
+            margin-right: 1rem;
+            transform: scale(1.2);
+        }
+
+        .file-selection-controls {
+            display: flex;
+            gap: 1rem;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .preview-operations {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .operation-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .operation-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .operation-row select {
+            min-width: 200px;
+        }
+
+        .preview-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid #ddd;
+        }
+
+        .preview-table {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .preview-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .preview-table th,
+        .preview-table td {
+            padding: 0.5rem;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+        }
+
+        .preview-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        .preview-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .operation-summary {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 1rem;
+            border-radius: 5px;
+            margin: 1rem 0;
+        }
+
+        @media (max-width: 768px) {
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .tabs {
+                flex-wrap: wrap;
+            }
+            
+            .tab-button {
+                padding: 0.75rem 1rem;
+            }
+        }
+
+        /* Bulk Operations Styles */
+        .bulk-operations-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .bulk-section {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border: 1px solid #e0e0e0;
+        }
+
+        .bulk-section h3 {
+            margin-bottom: 1rem;
+            color: #004e89;
+            font-size: 1.3rem;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 0.5rem;
+        }
+
+        .bulk-replace-form,
+        .bulk-delete-form,
+        .model-management-form {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            align-items: end;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.9rem;
+        }
+
+        .form-control {
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #004e89;
+            box-shadow: 0 0 0 3px rgba(0, 78, 137, 0.1);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-start;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #004e89, #0066cc);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #003d6b, #0052a3);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 78, 137, 0.3);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+            transform: translateY(-2px);
+        }
+
+        .warning-message {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-top: 1rem;
+        }
+
+        .danger-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .results-content {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 1rem;
+        }
+
+        .preview-content {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 1rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .preview-table th,
+        .preview-table td {
+            padding: 0.5rem;
+            border: 1px solid #dee2e6;
+            text-align: left;
+        }
+
+        .preview-table th {
+            background: #e9ecef;
+            font-weight: 600;
+        }
+
+        .preview-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .operation-result {
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+        }
+
+        .operation-result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .operation-result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .operation-result.warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #004e89;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        .selected-model-info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .selected-model-info span {
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .selected-model-info span:first-child {
+            font-weight: 600;
+            color: #004e89;
+        }
+
+        .selected-model-info span:last-child {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        .model-card {
+            transition: all 0.3s ease !important;
+        }
+
+        .model-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 78, 137, 0.1);
+        }
+
+        .model-card.selected {
+            border-color: #004e89 !important;
+            box-shadow: 0 4px 15px rgba(0, 78, 137, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+            }
+            
+            .danger-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <span class="icon">⚡</span>
+                Fasttrack Process Model Import Tool
+            </h1>
+            <p>Import Microsoft Dynamics 365 Business Process Models into Azure DevOps</p>
+        </div>
+
+        <div class="card">
+            <div class="tabs">
+                <button class="tab-button active" onclick="showTab('upload')">📁 Upload & Import</button>
+                <button class="tab-button" onclick="showTab('github')">📂 GitHub Repository</button>
+                <button class="tab-button" onclick="showTab('models')">📋 Imported Models</button>
+                <button class="tab-button" onclick="showTab('tree')">🌳 Tree View</button>
+                <button class="tab-button" onclick="showTab('bulk')">⚡ Bulk Operations</button>
+                <button class="tab-button" onclick="showTab('azure')">☁️ Azure DevOps</button>
+            </div>
+
+            <!-- Upload Tab -->
+            <div id="upload-tab" class="tab-content active">
+                <h2>Upload Excel File</h2>
+                <div class="file-upload" id="fileUpload">
+                    <div>
+                        <h3>📤 Drop Excel files here or click to browse</h3>
+                        <p>Supported formats: .xlsx, .xls (Max 16MB)</p>
+                        <input type="file" id="fileInput" accept=".xlsx,.xls" hidden>
+                    </div>
+                </div>
+                <div id="uploadStatus"></div>
+                <div id="uploadProgress" class="progress-bar hidden">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+
+            <!-- GitHub Tab -->
+            <div id="github-tab" class="tab-content">
+                <h2>Microsoft Dynamics 365 Business Process Catalog</h2>
+                
+                <div class="form-group">
+                    <label for="githubRepo">GitHub Repository</label>
+                    <input type="text" id="githubRepo" value="microsoft/dynamics365patternspractices" readonly>
+                    <small>Official Microsoft Dynamics 365 business process catalog repository</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="githubPath">Path in Repository</label>
+                    <input type="text" id="githubPath" value="business-process-catalog" readonly>
+                    <small>Folder containing the Excel business process models</small>
+                </div>
+                
+                <button class="btn" onclick="loadGitHubFiles()">
+                    <span id="githubLoadIcon">🔄</span> Load Available Files
+                </button>
+                
+                <div id="githubFiles" class="github-files hidden">
+                    <h3>Available Excel Files</h3>
+                    <div class="file-selection-controls">
+                        <button class="btn btn-secondary" onclick="selectAllFiles()">✅ Select All</button>
+                        <button class="btn btn-secondary" onclick="clearAllFiles()">❌ Clear All</button>
+                        <button class="btn btn-success" onclick="processSelectedFiles()" id="processBtn" disabled>
+                            <span id="processIcon">⚡</span> Process Selected Files
+                        </button>
+                    </div>
+                    <div id="filesList"></div>
+                </div>
+                
+                <div id="githubStatus"></div>
+            </div>
+
+            <!-- Models Tab -->
+            <div id="models-tab" class="tab-content">
+                <h2>Imported Process Models</h2>
+                <button class="btn btn-secondary" onclick="loadModels()">🔄 Refresh List</button>
+                
+                <!-- Model Management Section -->
+                <div class="bulk-section" id="modelManagementImportedSection" style="display: none;">
+                    <h3>📁 Model Management</h3>
+                    <div class="model-management-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="selectedModelInfo">Selected Model:</label>
+                                <div id="selectedModelInfo" class="selected-model-info">
+                                    <span id="selectedModelName">No model selected</span>
+                                    <span id="selectedModelStats"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Operations:</label>
+                                <div class="danger-actions">
+                                    <button onclick="deleteSelectedModel()" class="btn btn-danger">🗑️ Delete Model</button>
+                                </div>
+                                <p style="margin-top: 1rem; color: #6c757d; font-size: 0.9rem;">
+                                    <strong>Note:</strong> Merge functionality will be added in a future update (see execution plan).
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="modelsList" class="models-grid"></div>
+                <div id="modelsStatus"></div>
+                
+                <!-- Model Preview Modal -->
+                <div id="modelPreview" class="hidden">
+                    <h3>Model Preview & Operations</h3>
+                    <div id="previewContent"></div>
+                    
+                    <div class="preview-operations">
+                        <h4>Bulk Operations</h4>
+                        <div class="operation-controls">
+                            <div class="form-group">
+                                <label>Replace Work Item Type</label>
+                                <div class="operation-row">
+                                    <select id="replaceFromType">
+                                        <option value="">Select type to replace...</option>
+                                    </select>
+                                    <span>→</span>
+                                    <select id="replaceToType">
+                                        <option value="User Story">User Story</option>
+                                        <option value="Task">Task</option>
+                                        <option value="Feature">Feature</option>
+                                        <option value="Epic">Epic</option>
+                                        <option value="Bug">Bug</option>
+                                    </select>
+                                    <button class="btn btn-secondary" onclick="replaceWorkItemType()">Replace All</button>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Delete Items by State</label>
+                                <div class="operation-row">
+                                    <select id="deleteByState">
+                                        <option value="">Select state to delete...</option>
+                                        <option value="Deprecated">Deprecated</option>
+                                        <option value="Obsolete">Obsolete</option>
+                                        <option value="Removed">Removed</option>
+                                        <option value="Inactive">Inactive</option>
+                                    </select>
+                                    <button class="btn btn-danger" onclick="deleteByState()">Delete All</button>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Filter by Area Path</label>
+                                <div class="operation-row">
+                                    <select id="filterAreaPath">
+                                        <option value="">Show all areas...</option>
+                                    </select>
+                                    <button class="btn btn-secondary" onclick="filterByAreaPath()">Apply Filter</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="preview-actions">
+                            <button class="btn btn-success" onclick="applyChanges()">✅ Apply All Changes</button>
+                            <button class="btn btn-secondary" onclick="resetPreview()">🔄 Reset</button>
+                            <button class="btn" onclick="closePreview()">❌ Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tree View Tab -->
+            <div id="tree-tab" class="tab-content">
+                <h2>Model Tree View</h2>
+                
+                <div class="tree-view-controls">
+                    <div class="model-selector">
+                        <label for="treeModelSelect">Select Model:</label>
+                        <select id="treeModelSelect" onchange="loadModelTree()">
+                            <option value="">Select a model...</option>
+                        </select>
+                        <button onclick="refreshTreeModels()" class="btn btn-secondary">🔄 Refresh</button>
+                    </div>
+                    
+                    <div class="tree-actions">
+                        <button onclick="expandAllNodes()" class="btn btn-secondary">📖 Expand All</button>
+                        <button onclick="collapseAllNodes()" class="btn btn-secondary">📕 Collapse All</button>
+                        <button onclick="exportTreeData()" class="btn btn-primary">💾 Export Tree</button>
+                    </div>
+                </div>
+
+                <div class="tree-info" id="treeInfo" style="display: none;">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <strong>Model:</strong> <span id="treeModelName">-</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Total Items:</strong> <span id="treeTotalItems">0</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Folders:</strong> <span id="treeTotalFolders">0</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Structure:</strong> <span id="treeStructureType">Hierarchical</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tree-container" id="treeContainer">
+                    <div class="tree-placeholder">
+                        <div class="placeholder-icon">🌳</div>
+                        <h3>Select a Model to View Tree Structure</h3>
+                        <p>Choose a model from the dropdown above to visualize its hierarchical structure.</p>
+                    </div>
+                </div>
+
+                <div class="tree-details" id="treeDetails" style="display: none;">
+                    <h3>Work Item Details</h3>
+                    <div id="selectedItemDetails">
+                        <p>Click on a work item in the tree to view its details here.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bulk Operations Tab -->
+            <div id="bulk-tab" class="tab-content">
+                <h2>⚡ Bulk Operations</h2>
+                
+                <div class="bulk-operations-container">
+                    <!-- Model Selection -->
+                    <div class="bulk-section">
+                        <h3>📋 Select Model</h3>
+                        <div class="form-group">
+                            <select id="bulkModelSelect" class="form-control" onchange="loadBulkModelData()">
+                                <option value="">Select a model for bulk operations...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Bulk Replace Section -->
+                    <div class="bulk-section" id="bulkReplaceSection" style="display: none;">
+                        <h3>🔄 Bulk Replace Field Values</h3>
+                        <div class="bulk-replace-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="replaceFieldSelect">Field Name:</label>
+                                    <select id="replaceFieldSelect" class="form-control" onchange="loadFieldValues('replace')">
+                                        <option value="">Select field to modify...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="replaceOldValue">Current Value:</label>
+                                    <select id="replaceOldValue" class="form-control">
+                                        <option value="">Select current value...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="replaceNewValue">New Value:</label>
+                                    <input type="text" id="replaceNewValue" class="form-control" placeholder="Enter new value...">
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button onclick="previewBulkReplace()" class="btn btn-secondary">📋 Preview Changes</button>
+                                <button onclick="executeBulkReplace()" class="btn btn-primary">🔄 Execute Replace</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bulk Delete Section -->
+                    <div class="bulk-section" id="bulkDeleteSection" style="display: none;">
+                        <h3>🗑️ Bulk Delete Work Items</h3>
+                        <div class="bulk-delete-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="deleteFieldSelect">Field Name:</label>
+                                    <select id="deleteFieldSelect" class="form-control" onchange="loadFieldValues('delete')">
+                                        <option value="">Select field to filter by...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="deleteFieldValue">Value to Delete:</label>
+                                    <select id="deleteFieldValue" class="form-control">
+                                        <option value="">Select value to delete...</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button onclick="previewBulkDelete()" class="btn btn-secondary">📋 Preview Deletion</button>
+                                <button onclick="executeBulkDelete()" class="btn btn-danger">🗑️ Execute Delete</button>
+                            </div>
+                            <div class="warning-message">
+                                <p>⚠️ <strong>Hierarchy Protection:</strong> Items with children will be automatically protected from deletion.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Operations Results -->
+                    <div class="bulk-section" id="bulkResults" style="display: none;">
+                        <h3>📊 Operation Results</h3>
+                        <div id="bulkResultsContent" class="results-content">
+                        </div>
+                    </div>
+
+                    <!-- Preview Section -->
+                    <div class="bulk-section" id="bulkPreview" style="display: none;">
+                        <h3>👁️ Preview</h3>
+                        <div id="bulkPreviewContent" class="preview-content">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Azure DevOps Tab -->
+            <div id="azure-tab" class="tab-content">
+                <h2>Azure DevOps Integration</h2>
+                
+                <div class="azure-config">
+                    <div class="connection-status">
+                        <div class="status-indicator status-disconnected" id="azureStatusIndicator"></div>
+                        <span id="azureStatusText">Not Connected</span>
+                    </div>
+                    
+                    <div class="two-column">
+                        <div>
+                            <div class="form-group">
+                                <label for="azureOrg">Organization</label>
+                                <input type="text" id="azureOrg" placeholder="your-organization">
+                                <small>The organization name from your Azure DevOps URL</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="azureProject">Project</label>
+                                <input type="text" id="azureProject" placeholder="your-project">
+                                <small>The project name in your Azure DevOps organization</small>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div class="form-group">
+                                <label for="azurePat">Personal Access Token</label>
+                                <input type="password" id="azurePat" placeholder="your-pat-token">
+                                <small>Create a PAT with Work Items (read & write) permissions</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <button class="btn" onclick="configureAzureDevOps()">
+                                    <span id="azureConfigIcon">🔧</span> Configure Connection
+                                </button>
+                                <button class="btn btn-secondary" onclick="testAzureConnection()">
+                                    <span id="azureTestIcon">🔍</span> Test Connection
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="azureStatus"></div>
+
+                <div id="importSection" class="hidden">
+                    <h3>Import to Azure DevOps</h3>
+                    <div class="form-group">
+                        <label for="modelSelect">Select Model to Import</label>
+                        <select id="modelSelect">
+                            <option value="">Choose a model...</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-success" onclick="importToAzureDevOps()">
+                        <span id="importIcon">📤</span> Import Work Items
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab management
+        function showTab(tabName) {
+            console.log('showTab called with:', tabName);
+            
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            const targetTab = document.getElementById(tabName + '-tab');
+            if (targetTab) {
+                targetTab.classList.add('active');
+            }
+            
+            // Add active class to the correct tab button
+            const targetButton = document.querySelector(`[onclick="showTab('${tabName}')"]`);
+            if (targetButton) {
+                targetButton.classList.add('active');
+            }
+            
+            // Load content when switching to specific tabs
+            if (tabName === 'models') {
+                loadModels();
+            } else if (tabName === 'azure') {
+                checkAzureStatus();
+            } else if (tabName === 'bulk') {
+                loadBulkModels();
+            }
+        }
+        
+        // Essential functions for the application
+        async function loadGitHubFiles() {
+            const button = document.querySelector('[onclick="loadGitHubFiles()"]');
+            const icon = document.getElementById('githubLoadIcon');
+            
+            if (button) button.disabled = true;
+            if (icon) icon.className = 'loading';
+            
+            try {
+                const response = await fetch('/api/github/files');
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayGitHubFiles(result.data.files);
+                    showStatus('githubStatus', 'success', `Found ${result.data.files.length} Excel files`);
+                } else {
+                    showStatus('githubStatus', 'error', result.error || 'Failed to load files');
+                }
+            } catch (error) {
+                showStatus('githubStatus', 'error', `Error: ${error.message}`);
+            } finally {
+                if (button) button.disabled = false;
+                if (icon) {
+                    icon.className = '';
+                    icon.textContent = '🔄';
+                }
+            }
+        }
+        
+        function displayGitHubFiles(files) {
+            const container = document.getElementById('filesList');
+            if (!container) return;
+            
+            container.innerHTML = files.map(file => `
+                <div class="github-file" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border: 1px solid #eee; border-radius: 5px; margin-bottom: 0.5rem; cursor: pointer;" onclick="downloadGitHubFile('${file.path}')">
+                    <div>
+                        <strong>${file.name}</strong>
+                        <div style="font-size: 0.9rem; color: #666;">${file.path}</div>
+                    </div>
+                    <div style="font-size: 0.9rem; color: #666;">
+                        ${formatFileSize(file.size)}
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('githubFiles').classList.remove('hidden');
+        }
+        
+        async function downloadGitHubFile(filePath) {
+            showStatus('githubStatus', 'info', `Downloading ${filePath}...`);
+            
+            try {
+                const response = await fetch('/api/github/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ file_path: filePath })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showStatus('githubStatus', 'success', result.message);
+                    loadModels(); // Refresh models list
+                } else {
+                    showStatus('githubStatus', 'error', result.error || 'Download failed');
+                }
+            } catch (error) {
+                showStatus('githubStatus', 'error', `Download error: ${error.message}`);
+            }
+        }
+        
+        async function loadModels() {
+            try {
+                const response = await fetch('/api/models');
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayModels(result.data.models);
+                } else {
+                    showStatus('modelsStatus', 'error', result.error || 'Failed to load models');
+                }
+            } catch (error) {
+                showStatus('modelsStatus', 'error', `Error: ${error.message}`);
+            }
+        }
+        
+        function displayModels(models) {
+            const container = document.getElementById('modelsList');
+            if (!container) return;
+            
+            if (models.length === 0) {
+                container.innerHTML = '<p>No models imported yet. Upload an Excel file or download from GitHub to get started.</p>';
+                document.getElementById('modelManagementImportedSection').style.display = 'none';
+                return;
+            }
+            
+            container.innerHTML = models.map(model => `
+                <div class="model-card ${(typeof selectedModelForManagement !== 'undefined' && selectedModelForManagement === model.id) ? 'selected' : ''}" 
+                     onclick="selectModelForManagement('${model.id}', '${model.filename}')"
+                     style="background: white; border-radius: 8px; padding: 1rem; border: 2px solid ${(typeof selectedModelForManagement !== 'undefined' && selectedModelForManagement === model.id) ? '#004e89' : '#eee'}; margin-bottom: 1rem; cursor: pointer; transition: all 0.3s ease;">
+                    <h3>${model.filename}</h3>
+                    <div style="margin: 1rem 0; font-size: 0.9rem; color: #666;">
+                        <div>📅 ${new Date(model.created_at).toLocaleDateString()}</div>
+                        <div>🆔 ID: ${model.id}</div>
+                        <div>📍 Source: ${model.source}</div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;" onclick="event.stopPropagation();">
+                        <button class="btn btn-danger" onclick="deleteModelFromList('${model.id}', '${model.filename}')">�️ Delete</button>
+                        ${(typeof selectedModelForManagement !== 'undefined' && selectedModelForManagement === model.id) ? '<span style="color: #004e89; font-weight: bold; margin-left: 1rem;">✓ Selected for Management</span>' : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        async function deleteModelFromList(modelId, filename) {
+            if (!confirm(`Are you sure you want to permanently delete the model "${filename}"?\n\nThis action cannot be undone!`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/models/${modelId}`, { 
+                    method: 'DELETE' 
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    showStatus('modelsStatus', 'success', `Model "${filename}" deleted successfully`);
+                    
+                    // Clear selection if the deleted model was selected
+                    if (selectedModelForManagement === modelId) {
+                        selectedModelForManagement = null;
+                        document.getElementById('modelManagementImportedSection').style.display = 'none';
+                    }
+                    
+                    // Refresh the models list
+                    loadModels();
+                    
+                    // Also refresh bulk operations models list if it exists
+                    if (typeof loadBulkModels === 'function') {
+                        loadBulkModels();
+                    }
+                } else {
+                    showStatus('modelsStatus', 'error', result.error || result.detail || 'Delete failed');
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                showStatus('modelsStatus', 'error', `Delete error: ${error.message}`);
+            }
+        }
+        
+        async function checkAzureStatus() {
+            try {
+                const response = await fetch('/api/azure-devops/status');
+                const result = await response.json();
+                
+                if (result.success) {
+                    updateAzureStatus(result.data.status);
+                }
+            } catch (error) {
+                console.warn('Could not check Azure DevOps status:', error);
+            }
+        }
+        
+        function updateAzureStatus(status) {
+            const indicator = document.getElementById('azureStatusIndicator');
+            const text = document.getElementById('azureStatusText');
+            
+            if (status.configured && status.connection_test) {
+                if (indicator) indicator.className = 'status-indicator status-connected';
+                if (text) text.textContent = `Connected to ${status.organization}/${status.project}`;
+            } else {
+                if (indicator) indicator.className = 'status-indicator status-disconnected';
+                if (text) text.textContent = 'Not Connected';
+            }
+        }
+        
+        function showStatus(elementId, type, message) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.className = `status ${type}`;
+                element.textContent = message;
+                element.style.display = 'block';
+                
+                if (type === 'success') {
+                    setTimeout(() => element.style.display = 'none', 5000);
+                }
+            }
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        
+        // Tree View Functions
+        async function refreshTreeModels() {
+            try {
+                const response = await fetch('/api/models');
+                const data = await response.json();
+                
+                const select = document.getElementById('treeModelSelect');
+                select.innerHTML = '<option value="">Select a model...</option>';
+                
+                if (data.success && data.data.models) {
+                    data.data.models.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model.id;
+                        option.textContent = model.filename;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading models for tree view:', error);
+            }
+        }
+
+        async function loadModelTree() {
+            const select = document.getElementById('treeModelSelect');
+            const modelId = select.value;
+            
+            if (!modelId) {
+                hideTreeInfo();
+                showTreePlaceholder();
+                return;
+            }
+
+            try {
+                showStatus('Loading tree structure...', 'info');
+                
+                const response = await fetch(`/api/models/${modelId}/tree`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayTree(data.data);
+                    showStatus('Tree structure loaded successfully', 'success');
+                } else {
+                    showStatus('Failed to load tree structure', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading tree:', error);
+                showStatus('Error loading tree structure', 'error');
+            }
+        }
+
+        function displayTree(treeData) {
+            // Update tree info
+            document.getElementById('treeModelName').textContent = treeData.filename;
+            document.getElementById('treeTotalItems').textContent = treeData.tree.total_items;
+            document.getElementById('treeTotalFolders').textContent = treeData.tree.total_folders;
+            document.getElementById('treeInfo').style.display = 'block';
+            
+            // Build tree HTML
+            const container = document.getElementById('treeContainer');
+            container.innerHTML = '';
+            
+            if (treeData.tree.roots && treeData.tree.roots.length > 0) {
+                const treeUl = document.createElement('ul');
+                treeUl.className = 'tree-node';
+                
+                treeData.tree.roots.forEach(node => {
+                    const li = createTreeNode(node);
+                    treeUl.appendChild(li);
+                });
+                
+                container.appendChild(treeUl);
+            } else {
+                container.innerHTML = '<div class="tree-placeholder"><p>No tree structure available for this model</p></div>';
+            }
+        }
+
+        function createTreeNode(node) {
+            const li = document.createElement('li');
+            li.className = 'tree-node';
+            
+            const itemDiv = document.createElement('div');
+            itemDiv.className = node.is_folder ? 'tree-item folder' : 'tree-item';
+            itemDiv.onclick = () => selectTreeItem(node, itemDiv);
+            
+            // Toggle for folders with children
+            let toggleSpan = '';
+            if (node.is_folder && node.children && node.children.length > 0) {
+                toggleSpan = '<span class="tree-toggle" onclick="toggleNode(event, this)">▼</span>';
+            } else if (node.is_folder) {
+                toggleSpan = '<span class="tree-toggle">○</span>';
+            } else {
+                toggleSpan = '<span class="tree-toggle">•</span>';
+            }
+            
+            // Icon based on type
+            let icon = '📄';
+            if (node.is_folder) {
+                icon = '📁';
+            } else if (node.type === 'User Story') {
+                icon = '📋';
+            } else if (node.type === 'Task') {
+                icon = '✅';
+            } else if (node.type === 'Bug') {
+                icon = '🐛';
+            } else if (node.type === 'Feature') {
+                icon = '⭐';
+            }
+            
+            // Build item content
+            const workItemTypeBadge = node.is_folder 
+                ? `<span class="work-item-type-badge">${node.work_items_count || 0} items</span>`
+                : `<span class="work-item-type-badge work-item-type-${node.type.toLowerCase().replace(' ', '')}">${node.type}</span>`;
+            
+            itemDiv.innerHTML = `
+                ${toggleSpan}
+                <span class="tree-icon">${icon}</span>
+                <div class="tree-label">
+                    <div class="tree-title">${node.title}</div>
+                    <div class="tree-meta">
+                        ${workItemTypeBadge}
+                        ${node.state ? `<span>State: ${node.state}</span>` : ''}
+                        ${node.area_path ? `<span>Path: ${node.area_path}</span>` : ''}
+                    </div>
+                </div>
+            `;
+            
+            li.appendChild(itemDiv);
+            
+            // Add children if any
+            if (node.children && node.children.length > 0) {
+                const childrenUl = document.createElement('ul');
+                childrenUl.className = 'tree-children';
+                
+                node.children.forEach(child => {
+                    const childLi = createTreeNode(child);
+                    childrenUl.appendChild(childLi);
+                });
+                
+                li.appendChild(childrenUl);
+            }
+            
+            return li;
+        }
+
+        function toggleNode(event, toggleElement) {
+            event.stopPropagation();
+            
+            const li = toggleElement.closest('li');
+            const childrenUl = li.querySelector('.tree-children');
+            
+            if (childrenUl) {
+                const isCollapsed = childrenUl.classList.contains('collapsed');
+                
+                if (isCollapsed) {
+                    childrenUl.classList.remove('collapsed');
+                    toggleElement.textContent = '▼';
+                } else {
+                    childrenUl.classList.add('collapsed');
+                    toggleElement.textContent = '▶';
+                }
+            }
+        }
+
+        function selectTreeItem(node, element) {
+            // Remove previous selection
+            document.querySelectorAll('.tree-item.selected').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // Add selection to current item
+            element.classList.add('selected');
+            
+            // Show details
+            if (!node.is_folder && node.work_item_data) {
+                showWorkItemDetails(node.work_item_data);
+            } else if (node.is_folder) {
+                showFolderDetails(node);
+            }
+        }
+
+        function showWorkItemDetails(workItem) {
+            const detailsDiv = document.getElementById('treeDetails');
+            const contentDiv = document.getElementById('selectedItemDetails');
+            
+            const customFields = workItem.custom_fields || {};
+            
+            contentDiv.innerHTML = `
+                <div class="work-item-details">
+                    <div class="detail-group">
+                        <h4>Basic Information</h4>
+                        <div class="detail-value">
+                            <strong>ID:</strong> ${workItem.id}<br>
+                            <strong>Title:</strong> ${workItem.title}<br>
+                            <strong>Type:</strong> ${workItem.type}<br>
+                            <strong>State:</strong> ${workItem.state}<br>
+                            <strong>Priority:</strong> ${workItem.priority}
+                        </div>
+                    </div>
+                    
+                    <div class="detail-group">
+                        <h4>Paths & Organization</h4>
+                        <div class="detail-value">
+                            <strong>Area Path:</strong> ${workItem.area_path}<br>
+                            <strong>Source Sheet:</strong> ${workItem.source_sheet}<br>
+                            <strong>Source Row:</strong> ${workItem.source_row}<br>
+                            <strong>Tags:</strong> ${workItem.tags || 'None'}
+                        </div>
+                    </div>
+                    
+                    ${customFields.State ? `
+                    <div class="detail-group">
+                        <h4>Custom Fields</h4>
+                        <div class="detail-value">
+                            ${Object.entries(customFields).map(([key, value]) => 
+                                `<strong>${key}:</strong> ${value}<br>`
+                            ).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+                
+                ${workItem.description ? `
+                <div class="detail-group">
+                    <h4>Description</h4>
+                    <div class="detail-value" style="max-height: 200px; overflow-y: auto;">
+                        ${workItem.description}
+                    </div>
+                </div>
+                ` : ''}
+            `;
+            
+            detailsDiv.style.display = 'block';
+        }
+
+        function showFolderDetails(folder) {
+            const detailsDiv = document.getElementById('treeDetails');
+            const contentDiv = document.getElementById('selectedItemDetails');
+            
+            contentDiv.innerHTML = `
+                <div class="work-item-details">
+                    <div class="detail-group">
+                        <h4>Folder Information</h4>
+                        <div class="detail-value">
+                            <strong>Name:</strong> ${folder.title}<br>
+                            <strong>Path:</strong> ${folder.area_path}<br>
+                            <strong>Work Items:</strong> ${folder.work_items_count || 0}<br>
+                            <strong>Type:</strong> Container/Folder
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            detailsDiv.style.display = 'block';
+        }
+
+        function expandAllNodes() {
+            document.querySelectorAll('.tree-children.collapsed').forEach(children => {
+                children.classList.remove('collapsed');
+            });
+            
+            document.querySelectorAll('.tree-toggle').forEach(toggle => {
+                if (toggle.textContent === '▶') {
+                    toggle.textContent = '▼';
+                }
+            });
+        }
+
+        function collapseAllNodes() {
+            document.querySelectorAll('.tree-children').forEach(children => {
+                children.classList.add('collapsed');
+            });
+            
+            document.querySelectorAll('.tree-toggle').forEach(toggle => {
+                if (toggle.textContent === '▼') {
+                    toggle.textContent = '▶';
+                }
+            });
+        }
+
+        function exportTreeData() {
+            const select = document.getElementById('treeModelSelect');
+            const modelId = select.value;
+            
+            if (!modelId) {
+                showStatus('Please select a model first', 'error');
+                return;
+            }
+            
+            // Export as CSV
+            window.open(`/api/models/${modelId}/download/csv`, '_blank');
+        }
+
+        function hideTreeInfo() {
+            document.getElementById('treeInfo').style.display = 'none';
+            document.getElementById('treeDetails').style.display = 'none';
+        }
+
+        function showTreePlaceholder() {
+            const container = document.getElementById('treeContainer');
+            container.innerHTML = `
+                <div class="tree-placeholder">
+                    <div class="placeholder-icon">🌳</div>
+                    <h3>Select a Model to View Tree Structure</h3>
+                    <p>Choose a model from the dropdown above to visualize its hierarchical structure.</p>
+                </div>
+            `;
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Application initialized');
+            loadModels();
+            checkAzureStatus();
+            refreshTreeModels(); // Load models for tree view
+            loadBulkModels(); // Load models for bulk operations
+        });
+
+        // Bulk Operations Functions
+        let currentBulkModel = null;
+        let currentBulkModelData = null;
+
+        // Model Management Functions (for Imported Models tab)
+        let selectedModelForManagement = null;
+        let selectedModelData = null;
+
+        async function loadBulkModels() {
+            try {
+                const response = await fetch('/api/models');
+                const result = await response.json();
+                
+                const select = document.getElementById('bulkModelSelect');
+                select.innerHTML = '<option value="">Select a model for bulk operations...</option>';
+                
+                // Handle the API response structure
+                const models = result.data ? result.data.models : result;
+                
+                if (Array.isArray(models)) {
+                    models.forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model.id;
+                        option.textContent = `${model.filename} (${model.summary.total_rows} items)`;
+                        select.appendChild(option);
+                    });
+                } else {
+                    console.log('No models available or unexpected response format:', result);
+                    showOperationResult('No models available for bulk operations', 'warning');
+                }
+            } catch (error) {
+                console.error('Error loading models for bulk operations:', error);
+                showOperationResult('Error loading models: ' + error.message, 'error');
+            }
+        }
+
+        async function loadBulkModelData() {
+            const modelId = document.getElementById('bulkModelSelect').value;
+            
+            if (!modelId) {
+                // Hide all sections when no model selected
+                document.getElementById('bulkReplaceSection').style.display = 'none';
+                document.getElementById('bulkDeleteSection').style.display = 'none';
+                document.getElementById('bulkResults').style.display = 'none';
+                document.getElementById('bulkPreview').style.display = 'none';
+                currentBulkModel = null;
+                currentBulkModelData = null;
+                return;
+            }
+
+            try {
+                // Load model data
+                const response = await fetch(`/api/models/${modelId}`);
+                const result = await response.json();
+                
+                // Handle the API response structure
+                currentBulkModelData = result.data ? result.data : result;
+                currentBulkModel = modelId;
+
+                // Load field names
+                const fieldsResponse = await fetch(`/api/models/${modelId}/fields`);
+                const fieldsResult = await fieldsResponse.json();
+                const fields = fieldsResult.data ? fieldsResult.data : fieldsResult;
+
+                // Populate field selectors
+                populateFieldSelectors(fields);
+
+                // Show operation sections
+                document.getElementById('bulkReplaceSection').style.display = 'block';
+                document.getElementById('bulkDeleteSection').style.display = 'block';
+
+                const totalRows = currentBulkModelData.summary?.total_rows || currentBulkModelData.work_items?.length || 0;
+                showOperationResult(`Model loaded: ${currentBulkModelData.filename} (${totalRows} items)`, 'success');
+
+            } catch (error) {
+                console.error('Error loading model data:', error);
+                showOperationResult('Error loading model: ' + error.message, 'error');
+            }
+        }
+
+        function populateFieldSelectors(fields) {
+            const replaceSelect = document.getElementById('replaceFieldSelect');
+            const deleteSelect = document.getElementById('deleteFieldSelect');
+
+            // Clear existing options
+            replaceSelect.innerHTML = '<option value="">Select field to modify...</option>';
+            deleteSelect.innerHTML = '<option value="">Select field to filter by...</option>';
+
+            // Add top-level fields
+            fields.top_level.forEach(field => {
+                if (field !== 'id' && field !== 'custom_fields') {
+                    replaceSelect.appendChild(new Option(`${field} (top-level)`, field));
+                    deleteSelect.appendChild(new Option(`${field} (top-level)`, field));
+                }
+            });
+
+            // Add custom fields
+            fields.custom_fields.forEach(field => {
+                replaceSelect.appendChild(new Option(`${field} (custom)`, field));
+                deleteSelect.appendChild(new Option(`${field} (custom)`, field));
+            });
+        }
+
+        async function loadFieldValues(operation) {
+            const fieldSelect = operation === 'replace' ? 
+                document.getElementById('replaceFieldSelect') : 
+                document.getElementById('deleteFieldSelect');
+            
+            const valueSelect = operation === 'replace' ? 
+                document.getElementById('replaceOldValue') : 
+                document.getElementById('deleteFieldValue');
+
+            const fieldName = fieldSelect.value;
+            
+            if (!fieldName || !currentBulkModel) {
+                valueSelect.innerHTML = '<option value="">Select field first...</option>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/models/${currentBulkModel}/field-values/${fieldName}`);
+                const result = await response.json();
+                
+                // Handle the API response structure
+                const data = result.data ? result.data : result;
+                const values = data.values ? data.values : data;
+
+                valueSelect.innerHTML = '<option value="">Select value...</option>';
+                
+                if (Array.isArray(values)) {
+                    values.forEach(value => {
+                        const option = document.createElement('option');
+                        option.value = value;
+                        option.textContent = value;
+                        valueSelect.appendChild(option);
+                    });
+                } else {
+                    console.log('No values available or unexpected response format:', result);
+                }
+
+            } catch (error) {
+                console.error('Error loading field values:', error);
+                showOperationResult('Error loading field values: ' + error.message, 'error');
+            }
+        }
+
+        async function previewBulkReplace() {
+            const fieldName = document.getElementById('replaceFieldSelect').value;
+            const oldValue = document.getElementById('replaceOldValue').value;
+            const newValue = document.getElementById('replaceNewValue').value;
+
+            if (!fieldName || !oldValue || !newValue || !currentBulkModel) {
+                showOperationResult('Please fill in all fields', 'warning');
+                return;
+            }
+
+            try {
+                // Count matching items for preview
+                let matchingItems = [];
+                
+                currentBulkModelData.work_items.forEach(item => {
+                    let currentValue = null;
+                    
+                    // Check top-level fields
+                    if (fieldName in item) {
+                        currentValue = item[fieldName];
+                    }
+                    // Check custom fields
+                    else if (fieldName in (item.custom_fields || {})) {
+                        currentValue = item.custom_fields[fieldName];
+                    }
+
+                    if (String(currentValue) === oldValue) {
+                        matchingItems.push(item);
+                    }
+                });
+
+                showPreview('replace', {
+                    fieldName,
+                    oldValue,
+                    newValue,
+                    matchingItems,
+                    totalCount: currentBulkModelData.work_items.length
+                });
+
+            } catch (error) {
+                console.error('Error previewing replace:', error);
+                showOperationResult('Error previewing replace: ' + error.message, 'error');
+            }
+        }
+
+        async function previewBulkDelete() {
+            const fieldName = document.getElementById('deleteFieldSelect').value;
+            const fieldValue = document.getElementById('deleteFieldValue').value;
+
+            if (!fieldName || !fieldValue || !currentBulkModel) {
+                showOperationResult('Please fill in all fields', 'warning');
+                return;
+            }
+
+            try {
+                // Find matching items and check for children
+                let matchingItems = [];
+                let protectedItems = [];
+                
+                // Build hierarchy map
+                const hierarchyMap = {};
+                
+                currentBulkModelData.work_items.forEach(item => {
+                    const areaPath = item.custom_fields?.['Area Path'] || item.area_path || '';
+                    const hierarchyLevel = item.hierarchy_level || 1;
+                    
+                    currentBulkModelData.work_items.forEach(otherItem => {
+                        const otherAreaPath = otherItem.custom_fields?.['Area Path'] || otherItem.area_path || '';
+                        const otherLevel = otherItem.hierarchy_level || 1;
+                        
+                        if (otherLevel > hierarchyLevel && 
+                            otherAreaPath.startsWith(areaPath) && 
+                            otherAreaPath !== areaPath) {
+                            
+                            if (!hierarchyMap[areaPath]) {
+                                hierarchyMap[areaPath] = [];
+                            }
+                            hierarchyMap[areaPath].push(otherItem);
+                        }
+                    });
+                });
+
+                currentBulkModelData.work_items.forEach(item => {
+                    let currentValue = null;
+                    
+                    // Check top-level fields
+                    if (fieldName in item) {
+                        currentValue = item[fieldName];
+                    }
+                    // Check custom fields
+                    else if (fieldName in (item.custom_fields || {})) {
+                        currentValue = item.custom_fields[fieldName];
+                    }
+
+                    if (String(currentValue) === fieldValue) {
+                        const areaPath = item.custom_fields?.['Area Path'] || item.area_path || '';
+                        const hasChildren = hierarchyMap[areaPath] && hierarchyMap[areaPath].length > 0;
+                        
+                        if (hasChildren) {
+                            protectedItems.push(item);
+                        } else {
+                            matchingItems.push(item);
+                        }
+                    }
+                });
+
+                showPreview('delete', {
+                    fieldName,
+                    fieldValue,
+                    matchingItems,
+                    protectedItems,
+                    totalCount: currentBulkModelData.work_items.length
+                });
+
+            } catch (error) {
+                console.error('Error previewing delete:', error);
+                showOperationResult('Error previewing delete: ' + error.message, 'error');
+            }
+        }
+
+        function showPreview(operation, data) {
+            const previewSection = document.getElementById('bulkPreview');
+            const previewContent = document.getElementById('bulkPreviewContent');
+            
+            let html = '';
+            
+            if (operation === 'replace') {
+                html = `
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number">${data.matchingItems.length}</div>
+                            <div class="stat-label">Items to Update</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${data.totalCount - data.matchingItems.length}</div>
+                            <div class="stat-label">Items Unchanged</div>
+                        </div>
+                    </div>
+                    <h4>📋 Replace Preview</h4>
+                    <p><strong>Field:</strong> ${data.fieldName}</p>
+                    <p><strong>Change:</strong> "${data.oldValue}" → "${data.newValue}"</p>
+                    
+                    <h5>Items to be updated:</h5>
+                    <table class="preview-table">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Type</th>
+                                <th>Current Value</th>
+                                <th>New Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                data.matchingItems.slice(0, 10).forEach(item => {
+                    html += `
+                        <tr>
+                            <td>${item.title}</td>
+                            <td>${item.type}</td>
+                            <td>${data.oldValue}</td>
+                            <td>${data.newValue}</td>
+                        </tr>
+                    `;
+                });
+                
+                if (data.matchingItems.length > 10) {
+                    html += `<tr><td colspan="4">... and ${data.matchingItems.length - 10} more items</td></tr>`;
+                }
+                
+                html += '</tbody></table>';
+            } 
+            else if (operation === 'delete') {
+                html = `
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number">${data.matchingItems.length}</div>
+                            <div class="stat-label">Items to Delete</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${data.protectedItems.length}</div>
+                            <div class="stat-label">Protected (Have Children)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${data.totalCount - data.matchingItems.length - data.protectedItems.length}</div>
+                            <div class="stat-label">Unaffected</div>
+                        </div>
+                    </div>
+                    <h4>🗑️ Delete Preview</h4>
+                    <p><strong>Field:</strong> ${data.fieldName}</p>
+                    <p><strong>Value:</strong> "${data.fieldValue}"</p>
+                    
+                    <h5>Items to be deleted:</h5>
+                    <table class="preview-table">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Type</th>
+                                <th>Area Path</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                data.matchingItems.slice(0, 10).forEach(item => {
+                    html += `
+                        <tr>
+                            <td>${item.title}</td>
+                            <td>${item.type}</td>
+                            <td>${item.custom_fields?.['Area Path'] || item.area_path || ''}</td>
+                        </tr>
+                    `;
+                });
+                
+                if (data.matchingItems.length > 10) {
+                    html += `<tr><td colspan="3">... and ${data.matchingItems.length - 10} more items</td></tr>`;
+                }
+                
+                html += '</tbody></table>';
+                
+                if (data.protectedItems.length > 0) {
+                    html += `
+                        <h5>Protected items (have children):</h5>
+                        <table class="preview-table">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Type</th>
+                                    <th>Area Path</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+                    
+                    data.protectedItems.slice(0, 5).forEach(item => {
+                        html += `
+                            <tr>
+                                <td>${item.title}</td>
+                                <td>${item.type}</td>
+                                <td>${item.custom_fields?.['Area Path'] || item.area_path || ''}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    if (data.protectedItems.length > 5) {
+                        html += `<tr><td colspan="3">... and ${data.protectedItems.length - 5} more protected items</td></tr>`;
+                    }
+                    
+                    html += '</tbody></table>';
+                }
+            }
+            
+            previewContent.innerHTML = html;
+            previewSection.style.display = 'block';
+            previewSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function executeBulkReplace() {
+            const fieldName = document.getElementById('replaceFieldSelect').value;
+            const oldValue = document.getElementById('replaceOldValue').value;
+            const newValue = document.getElementById('replaceNewValue').value;
+
+            if (!fieldName || !oldValue || !newValue || !currentBulkModel) {
+                showOperationResult('Please fill in all fields', 'warning');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to replace all "${oldValue}" values with "${newValue}" in field "${fieldName}"?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/models/${currentBulkModel}/replace-field-value`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        field_name: fieldName,
+                        old_value: oldValue,
+                        new_value: newValue
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showOperationResult(`Successfully replaced ${result.replacement_count} values in field "${fieldName}"`, 'success');
+                    
+                    // Reload model data
+                    await loadBulkModelData();
+                    
+                    // Refresh other views
+                    loadModels();
+                    refreshTreeModels();
+                    
+                    // Clear form
+                    document.getElementById('replaceNewValue').value = '';
+                    document.getElementById('bulkPreview').style.display = 'none';
+                    
+                } else {
+                    showOperationResult('Error: ' + result.detail, 'error');
+                }
+
+            } catch (error) {
+                console.error('Error executing bulk replace:', error);
+                showOperationResult('Error executing bulk replace: ' + error.message, 'error');
+            }
+        }
+
+        async function executeBulkDelete() {
+            const fieldName = document.getElementById('deleteFieldSelect').value;
+            const fieldValue = document.getElementById('deleteFieldValue').value;
+
+            if (!fieldName || !fieldValue || !currentBulkModel) {
+                showOperationResult('Please fill in all fields', 'warning');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to delete all items where "${fieldName}" equals "${fieldValue}"?\n\nNote: Items with children will be automatically protected.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/models/${currentBulkModel}/delete-by-field-value`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        field_name: fieldName,
+                        field_value: fieldValue
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    let message = `Successfully deleted ${result.deletion_count} items`;
+                    if (result.protected_count > 0) {
+                        message += ` (${result.protected_count} items were protected from deletion due to having children)`;
+                    }
+                    showOperationResult(message, 'success');
+                    
+                    // Show detailed results
+                    showDetailedResults(result);
+                    
+                    // Reload model data
+                    await loadBulkModelData();
+                    
+                    // Refresh other views
+                    loadModels();
+                    refreshTreeModels();
+                    
+                    // Clear form and hide preview
+                    document.getElementById('bulkPreview').style.display = 'none';
+                    
+                } else {
+                    showOperationResult('Error: ' + result.detail, 'error');
+                }
+
+            } catch (error) {
+                console.error('Error executing bulk delete:', error);
+                showOperationResult('Error executing bulk delete: ' + error.message, 'error');
+            }
+        }
+
+        function showDetailedResults(result) {
+            const resultsSection = document.getElementById('bulkResults');
+            const resultsContent = document.getElementById('bulkResultsContent');
+            
+            let html = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">${result.deletion_count}</div>
+                        <div class="stat-label">Items Deleted</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${result.protected_count}</div>
+                        <div class="stat-label">Items Protected</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${result.remaining_count}</div>
+                        <div class="stat-label">Total Remaining</div>
+                    </div>
+                </div>
+            `;
+            
+            if (result.deleted_items && result.deleted_items.length > 0) {
+                html += `
+                    <h4>Deleted Items:</h4>
+                    <ul>
+                `;
+                result.deleted_items.forEach(item => {
+                    html += `<li>${item.title} (${item.id})</li>`;
+                });
+                html += '</ul>';
+            }
+            
+            if (result.protected_items && result.protected_items.length > 0) {
+                html += `
+                    <h4>Protected Items (have children):</h4>
+                    <ul>
+                `;
+                result.protected_items.forEach(item => {
+                    html += `<li>${item.title} (${item.id}) - ${item.reason}</li>`;
+                });
+                html += '</ul>';
+            }
+            
+            resultsContent.innerHTML = html;
+            resultsSection.style.display = 'block';
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Model Management Functions for Imported Models Tab
+        async function selectModelForManagement(modelId, filename) {
+            selectedModelForManagement = modelId;
+            
+            try {
+                // Fetch detailed model data to get total rows
+                const response = await fetch(`/api/models/${modelId}`);
+                const result = await response.json();
+                
+                if (response.ok && result.success && result.data?.model) {
+                    const model = result.data.model;
+                    const totalRows = model.summary?.total_rows || model.work_items?.length || 0;
+                    
+                    // Update UI
+                    document.getElementById('selectedModelName').textContent = filename;
+                    document.getElementById('selectedModelStats').textContent = `${totalRows} items`;
+                    
+                    // Show management section
+                    document.getElementById('modelManagementImportedSection').style.display = 'block';
+                } else {
+                    // Fallback if detailed data is not available
+                    document.getElementById('selectedModelName').textContent = filename;
+                    document.getElementById('selectedModelStats').textContent = 'Loading...';
+                    document.getElementById('modelManagementImportedSection').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error loading model details:', error);
+                // Still show the selection with basic info
+                document.getElementById('selectedModelName').textContent = filename;
+                document.getElementById('selectedModelStats').textContent = 'Details unavailable';
+                document.getElementById('modelManagementImportedSection').style.display = 'block';
+            }
+            
+            // Refresh the display to show selection
+            loadModels();
+        }
+
+        function deleteSelectedModel() {
+            if (!selectedModelForManagement) {
+                showStatus('modelsStatus', 'warning', 'No model selected');
+                return;
+            }
+            
+            const modelName = document.getElementById('selectedModelName').textContent;
+            
+            if (!confirm(`Are you sure you want to permanently delete the model "${modelName}"?\n\nThis action cannot be undone!`)) {
+                return;
+            }
+            
+            // Call the same delete function used by the delete buttons
+            deleteModelFromList(selectedModelForManagement, modelName);
+        }
+
+        // Fix for operations result error - make it more robust
+        function showOperationResult(message, type) {
+            // Try to find the results section, but don't fail if it doesn't exist
+            const resultsSection = document.getElementById('bulkResults');
+            const resultsContent = document.getElementById('bulkResultsContent');
+            
+            if (resultsSection && resultsContent) {
+                // If bulk results section exists, use it
+                const html = `
+                    <div class="operation-result ${type}">
+                        <strong>${type.charAt(0).toUpperCase() + type.slice(1)}:</strong> ${message}
+                    </div>
+                `;
+                
+                resultsContent.innerHTML = html;
+                resultsSection.style.display = 'block';
+                resultsSection.scrollIntoView({ behavior: 'smooth' });
+                return;
+            }
+            
+            // Fallback 1: Try to use models status
+            const modelsStatus = document.getElementById('modelsStatus');
+            if (modelsStatus) {
+                showStatus('modelsStatus', type, message);
+                return;
+            }
+            
+            // Fallback 2: Try to use any existing status element
+            const statusElements = document.querySelectorAll('[id$="Status"]');
+            if (statusElements.length > 0) {
+                showStatus(statusElements[0].id.replace('Status', ''), type, message);
+                return;
+            }
+            
+            // Fallback 3: Create a temporary notification
+            const notification = document.createElement('div');
+            notification.className = `operation-result ${type}`;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#d4edda' : type === 'error' ? '#f8d7da' : '#fff3cd'};
+                border: 1px solid ${type === 'success' ? '#c3e6cb' : type === 'error' ? '#f5c6cb' : '#ffeaa7'};
+                color: ${type === 'success' ? '#155724' : type === 'error' ? '#721c24' : '#856404'};
+                padding: 1rem;
+                border-radius: 5px;
+                z-index: 9999;
+                max-width: 400px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            `;
+            notification.innerHTML = `<strong>${type.charAt(0).toUpperCase() + type.slice(1)}:</strong> ${message}`;
+            
+            document.body.appendChild(notification);
+            
+            // Remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
