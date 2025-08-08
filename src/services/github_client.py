@@ -179,3 +179,82 @@ class GitHubClient:
         except requests.RequestException as e:
             logger.error(f"Error getting repository info: {str(e)}")
             raise
+
+    def list_repositories(self) -> List[Dict[str, Any]]:
+        """Get list of available GitHub repositories (for now, return predefined Microsoft repos)"""
+        try:
+            # For now, return a curated list of Microsoft Dynamics 365 repositories
+            return [
+                {
+                    'name': 'Dynamics365-Apps-Samples',
+                    'full_name': 'microsoft/Dynamics365-Apps-Samples',
+                    'description': 'Microsoft Dynamics 365 Apps Samples',
+                    'html_url': 'https://github.com/microsoft/Dynamics365-Apps-Samples',
+                    'default_branch': 'master'
+                },
+                {
+                    'name': 'dynamics365patternspractices',
+                    'full_name': 'microsoft/dynamics365patternspractices',
+                    'description': 'Microsoft Dynamics 365 Patterns & Practices',
+                    'html_url': 'https://github.com/microsoft/dynamics365patternspractices',
+                    'default_branch': 'master'
+                },
+                {
+                    'name': 'Dynamics-365-FastTrack-Implementation-Assets',
+                    'full_name': 'microsoft/Dynamics-365-FastTrack-Implementation-Assets',
+                    'description': 'Dynamics 365 FastTrack Implementation Assets',
+                    'html_url': 'https://github.com/microsoft/Dynamics-365-FastTrack-Implementation-Assets',
+                    'default_branch': 'master'
+                }
+            ]
+        except Exception as e:
+            logger.error(f"Error listing repositories: {str(e)}")
+            raise
+
+    def list_repo_files(self, repo_name: str, path: str = "") -> List[Dict[str, Any]]:
+        """Get list of files from a specific repository path"""
+        try:
+            # Parse repo_name to get owner/repo
+            if '/' in repo_name:
+                repo_owner, repo_name_only = repo_name.split('/', 1)
+            else:
+                repo_owner = self.repo_owner
+                repo_name_only = repo_name
+            
+            # Build API URL
+            api_url = f"{self.api_base}/repos/{repo_owner}/{repo_name_only}/contents"
+            if path:
+                api_url += f"/{path}"
+            
+            logger.info(f"Fetching files from: {api_url}")
+            
+            response = requests.get(api_url, timeout=30)
+            response.raise_for_status()
+            
+            contents = response.json()
+            files = []
+            
+            # Process the response
+            for item in contents:
+                file_info = {
+                    'name': item['name'],
+                    'path': item['path'],
+                    'type': item['type'],
+                    'size': item.get('size', 0),
+                    'html_url': item['html_url'],
+                    'sha': item['sha']
+                }
+                
+                # Add download_url for files
+                if item['type'] == 'file':
+                    file_info['download_url'] = item.get('download_url', '')
+                    file_info['is_excel'] = item['name'].lower().endswith(('.xlsx', '.xls'))
+                
+                files.append(file_info)
+            
+            logger.info(f"Found {len(files)} items in {repo_name}/{path}")
+            return files
+            
+        except requests.RequestException as e:
+            logger.error(f"Error fetching files from {repo_name}/{path}: {str(e)}")
+            raise

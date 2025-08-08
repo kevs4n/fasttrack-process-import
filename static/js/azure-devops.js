@@ -178,20 +178,32 @@ class AzureDevOpsManager {
         // FUTURE: Implement actual Azure DevOps connection test
         UIUtils.showStatus('azureStatus', 'info', 'Azure DevOps connection testing is planned for Phase 10');
         
-        UIUtils.showOperationResult(`
-            Azure DevOps Integration Testing (Phase 10 Feature)
+    }
+
+    async checkStatus() {
+        try {
+            const response = await fetch('/api/azure-devops/status');
+            const result = await response.json();
             
-            Organization: ${organization}
-            Project: ${project}
-            
-            This will validate:
-            ✓ Personal Access Token permissions
-            ✓ Organization and project access
-            ✓ Required work item types
-            ✓ Area paths and iteration configuration
-            
-            Once connected, you'll be able to create work items directly from your imported models.
-        `, 'info');
+            if (result.success) {
+                this.updateStatus(result.data.status);
+            }
+        } catch (error) {
+            console.warn('Could not check Azure DevOps status:', error);
+        }
+    }
+    
+    updateStatus(status) {
+        const indicator = document.getElementById('azureStatusIndicator');
+        const text = document.getElementById('azureStatusText');
+        
+        if (status.configured && status.connection_test) {
+            if (indicator) indicator.className = 'status-indicator status-connected';
+            if (text) text.textContent = `Connected to ${status.organization}/${status.project}`;
+        } else {
+            if (indicator) indicator.className = 'status-indicator status-disconnected';
+            if (text) text.textContent = 'Phase 10 Feature - Coming Soon';
+        }
     }
 
     async createWorkItems() {

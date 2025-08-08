@@ -16,7 +16,7 @@ This MACHETE platform tool allows you to easily import business process models f
 ## Quick Start
 
 ### 1. Access the Tool
-Once installed in MACHETE, access the tool through your MACHETE dashboard. The tool runs on port 8080.
+Once installed in MACHETE, access the tool through your MACHETE dashboard. The tool runs on port 8085.
 
 ### 2. Import Process Models
 
@@ -95,7 +95,7 @@ All data is stored in the `/app/data` directory within the container:
 ## Configuration
 
 ### Environment Variables
-- `PORT` - Application port (default: 8080)
+- `PORT` - Application port (default: 8085)
 - `LOG_LEVEL` - Logging level (default: INFO)
 
 ### Azure DevOps Configuration
@@ -129,13 +129,13 @@ Application logs are available in `/app/data/fasttrack_import.log` within the co
 1. Install Python 3.9+
 2. Install dependencies: `pip install -r requirements.txt`
 3. Run the application: `python src/app.py`
-4. Access at `http://localhost:8080`
+4. Access at `http://localhost:8085`
 
 ### MACHETE Integration
 This tool follows MACHETE conventions:
 - Uses `machete.yml` for tool configuration
 - Implements health check endpoint
-- Runs on port 8080
+- Runs on port 8085
 - Follows container naming conventions
 
 ## License

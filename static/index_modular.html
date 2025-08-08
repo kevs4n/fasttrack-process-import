@@ -6,7 +6,7 @@
     <title>Fasttrack Process Model Import Tool</title>
     
     <!-- External CSS -->
-    <link rel="stylesheet" href="/static/styles/main.css">
+    <link rel="stylesheet" href="styles/main.css">
 </head>
 <body>
     <div class="container">
@@ -46,34 +46,22 @@
 
             <!-- GitHub Tab -->
             <div id="github-tab" class="tab-content">
-                <h2>Microsoft Dynamics 365 Business Process Catalog</h2>
+                <h2>GitHub Repository Access</h2>
                 
                 <div class="form-group">
-                    <label for="githubRepo">GitHub Repository</label>
-                    <input type="text" id="githubRepo" value="microsoft/dynamics365patternspractices" readonly>
-                    <small>Official Microsoft Dynamics 365 business process catalog repository</small>
+                    <label for="repoSelect">Select Repository:</label>
+                    <select id="repoSelect" class="form-control">
+                        <option value="">Loading repositories...</option>
+                    </select>
+                    <button onclick="window.GitHubManager.loadRepositories()" class="btn btn-secondary">🔄 Refresh</button>
                 </div>
                 
-                <div class="form-group">
-                    <label for="githubPath">Path in Repository</label>
-                    <input type="text" id="githubPath" value="business-process-catalog" readonly>
-                    <small>Folder containing the Excel business process models</small>
-                </div>
-                
-                <button class="btn" onclick="window.GitHubManager.loadFiles()">
-                    <span id="githubLoadIcon">🔄</span> Load Available Files
-                </button>
-                
-                <div id="githubFiles" class="github-files hidden">
-                    <h3>Available Excel Files</h3>
-                    <div class="file-selection-controls">
-                        <button class="btn btn-secondary" onclick="window.GitHubManager.selectAllFiles()">✅ Select All</button>
-                        <button class="btn btn-secondary" onclick="window.GitHubManager.clearAllFiles()">❌ Clear All</button>
-                        <button class="btn btn-success" onclick="window.GitHubManager.processSelectedFiles()" id="processBtn" disabled>
-                            <span id="processIcon">⚡</span> Process Selected Files
-                        </button>
+                <div id="repoFilesSection" style="display: none;">
+                    <h3>Available Files</h3>
+                    <div id="repoFiles"></div>
+                    <div id="githubProgress" class="progress-bar hidden">
+                        <div class="progress-fill" id="githubProgressFill"></div>
                     </div>
-                    <div id="filesList"></div>
                 </div>
                 
                 <div id="githubStatus"></div>
@@ -103,50 +91,10 @@
                                 <div class="danger-actions">
                                     <button onclick="window.ModelsManager.deleteSelectedModel()" class="btn btn-danger">🗑️ Delete Model</button>
                                 </div>
+                                <p style="margin-top: 1rem; color: #6c757d; font-size: 0.9rem;">
+                                    <strong>Note:</strong> Model merge functionality is prepared for Phase 9 implementation.
+                                </p>
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Model Merge Section -->
-                <div class="bulk-section" id="modelMergeSection" style="display: none;">
-                    <h3>🔗 Model Merge Operations</h3>
-                    <div class="model-merge-form">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Selected Models for Merge:</label>
-                                <div id="selectedModelsForMerge" class="selected-models-display">
-                                    <span>No models selected</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="mergedModelName">New Merged Model Name:</label>
-                                <input type="text" id="mergedModelName" class="form-control" 
-                                       placeholder="Enter name for merged model..." 
-                                       style="margin-bottom: 0.5rem;">
-                                <small class="form-text">The merged model will combine all work items from selected models</small>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <div class="merge-actions">
-                                    <button onclick="window.ModelsManager.performMerge()" 
-                                            class="btn btn-primary" 
-                                            id="mergeModelsButton" 
-                                            disabled>
-                                        🔗 Merge Selected Models
-                                    </button>
-                                    <button onclick="window.ModelsManager.clearMergeSelection()" 
-                                            class="btn btn-secondary">
-                                        🗑️ Clear Selection
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="info-message">
-                            <p>ℹ️ <strong>Merge Process:</strong> Select 2 or more models using the checkboxes below, then specify a name for the combined model. Original models will be preserved.</p>
                         </div>
                     </div>
                 </div>
@@ -162,33 +110,10 @@
                 <div class="tree-view-controls">
                     <div class="model-selector">
                         <label for="treeModelSelect">Select Model:</label>
-                        <select id="treeModelSelect" class="form-control" onchange="window.TreeViewManager.loadModelTree()">
+                        <select id="treeModelSelect" class="form-control">
                             <option value="">Select a model...</option>
                         </select>
                         <button onclick="window.TreeViewManager.loadModels()" class="btn btn-secondary">🔄 Refresh</button>
-                    </div>
-                    
-                    <div class="tree-actions">
-                        <button onclick="window.TreeViewManager.expandAllNodes()" class="btn btn-secondary">📖 Expand All</button>
-                        <button onclick="window.TreeViewManager.collapseAllNodes()" class="btn btn-secondary">📕 Collapse All</button>
-                        <button onclick="window.TreeViewManager.exportTreeData()" class="btn btn-primary">💾 Export Tree</button>
-                    </div>
-                </div>
-
-                <div class="tree-info" id="treeInfo" style="display: none;">
-                    <div class="info-grid">
-                        <div class="info-item">
-                            <strong>Model:</strong> <span id="treeModelName">-</span>
-                        </div>
-                        <div class="info-item">
-                            <strong>Total Items:</strong> <span id="treeTotalItems">0</span>
-                        </div>
-                        <div class="info-item">
-                            <strong>Folders:</strong> <span id="treeTotalFolders">0</span>
-                        </div>
-                        <div class="info-item">
-                            <strong>Structure:</strong> <span id="treeStructureType">Hierarchical</span>
-                        </div>
                     </div>
                 </div>
 
@@ -197,13 +122,6 @@
                         <div class="placeholder-icon">🌳</div>
                         <h3>Select a Model to View Tree Structure</h3>
                         <p>Choose a model from the dropdown above to visualize its hierarchical structure.</p>
-                    </div>
-                </div>
-
-                <div class="tree-details" id="treeDetails" style="display: none;">
-                    <h3>Work Item Details</h3>
-                    <div id="selectedItemDetails">
-                        <p>Click on a work item in the tree to view its details here.</p>
                     </div>
                 </div>
                 
@@ -219,7 +137,7 @@
                     <div class="bulk-section">
                         <h3>📋 Select Model</h3>
                         <div class="form-group">
-                            <select id="bulkModelSelect" class="form-control" onchange="window.BulkOperations.loadModelData()">
+                            <select id="modelSelect" class="form-control">
                                 <option value="">Select a model for bulk operations...</option>
                             </select>
                         </div>
@@ -366,12 +284,12 @@
     </div>
 
     <!-- External JavaScript Modules -->
-    <script src="/static/js/ui-utils.js"></script>
-    <script src="/static/js/models.js"></script>
-    <script src="/static/js/bulk-operations.js"></script>
-    <script src="/static/js/github.js"></script>
-    <script src="/static/js/azure-devops.js"></script>
-    <script src="/static/js/tree-view.js"></script>
+    <script src="js/ui-utils.js"></script>
+    <script src="js/models.js"></script>
+    <script src="js/bulk-operations.js"></script>
+    <script src="js/github.js"></script>
+    <script src="js/azure-devops.js"></script>
+    <script src="js/tree-view.js"></script>
 
     <!-- Initialize Application -->
     <script>
@@ -401,7 +319,6 @@
             
             if (window.AzureDevOpsManager) {
                 window.AzureDevOpsManager.loadModels();
-                window.AzureDevOpsManager.checkStatus();
             }
         });
     </script>

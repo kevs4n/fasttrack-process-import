@@ -1,5 +1,5 @@
 /**
- * Bulk Operations Manager - Handle field replacement and hierarchy operations
+ * Bulk Operations Manager - Field replacement and hierarchy operations
  * Part of FastTrack Process Import Tool modularization
  */
 
@@ -31,7 +31,7 @@ class BulkOperationsManager {
     }
 
     populateModelSelect(models) {
-        const select = document.getElementById('modelSelect');
+        const select = document.getElementById('bulkModelSelect');
         if (!select) return;
         
         select.innerHTML = '<option value="">Select a model...</option>';
@@ -84,6 +84,10 @@ class BulkOperationsManager {
         document.getElementById('modelData').style.display = 'none';
         document.getElementById('fieldReplacementSection').style.display = 'none';
         document.getElementById('hierarchySection').style.display = 'none';
+        
+        // Clear forms
+        this.clearFieldValues();
+        this.clearDeleteFieldValues();
     }
 
     displayModelData(model) {
@@ -154,8 +158,9 @@ class BulkOperationsManager {
 
         const workItems = this.loadedModel.work_items || [];
         const fieldSelect = document.getElementById('targetField');
+        const deleteFieldSelect = document.getElementById('deleteField');
         
-        if (!fieldSelect || workItems.length === 0) return;
+        if (workItems.length === 0) return;
 
         // Get all unique field names from work items
         const fieldNames = new Set();
@@ -163,18 +168,35 @@ class BulkOperationsManager {
             Object.keys(item).forEach(key => fieldNames.add(key));
         });
 
-        // Populate field select
-        fieldSelect.innerHTML = '<option value="">Select field to update...</option>';
-        
-        Array.from(fieldNames).sort().forEach(field => {
-            const option = document.createElement('option');
-            option.value = field;
-            option.textContent = field;
-            fieldSelect.appendChild(option);
-        });
+        const sortedFields = Array.from(fieldNames).sort();
 
-        // Set up field change handler
-        fieldSelect.onchange = (e) => this.populateFieldValues(e.target.value);
+        // Populate field replacement select
+        if (fieldSelect) {
+            fieldSelect.innerHTML = '<option value="">Select field to update...</option>';
+            sortedFields.forEach(field => {
+                const option = document.createElement('option');
+                option.value = field;
+                option.textContent = field;
+                fieldSelect.appendChild(option);
+            });
+
+            // Set up field change handler
+            fieldSelect.onchange = (e) => this.populateFieldValues(e.target.value);
+        }
+
+        // Populate delete field select
+        if (deleteFieldSelect) {
+            deleteFieldSelect.innerHTML = '<option value="">Select field for deletion criteria...</option>';
+            sortedFields.forEach(field => {
+                const option = document.createElement('option');
+                option.value = field;
+                option.textContent = field;
+                deleteFieldSelect.appendChild(option);
+            });
+
+            // Set up delete field change handler
+            deleteFieldSelect.onchange = (e) => this.populateDeleteFieldValues(e.target.value);
+        }
     }
 
     populateFieldValues(fieldName) {
@@ -218,6 +240,45 @@ class BulkOperationsManager {
         document.getElementById('replacementForm').style.display = 'none';
     }
 
+    populateDeleteFieldValues(fieldName) {
+        if (!this.loadedModel || !fieldName) {
+            this.clearDeleteFieldValues();
+            return;
+        }
+
+        const workItems = this.loadedModel.work_items || [];
+        const values = new Set();
+        
+        workItems.forEach(item => {
+            if (item[fieldName] !== undefined && item[fieldName] !== null && item[fieldName] !== '') {
+                values.add(item[fieldName]);
+            }
+        });
+
+        const deleteValueSelect = document.getElementById('deleteValue');
+        if (deleteValueSelect) {
+            deleteValueSelect.innerHTML = '<option value="">Select value to delete...</option>';
+            
+            Array.from(values).sort().forEach(value => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                deleteValueSelect.appendChild(option);
+            });
+        }
+
+        // Show the delete form section
+        document.getElementById('deleteForm').style.display = 'block';
+    }
+
+    clearDeleteFieldValues() {
+        const deleteValueSelect = document.getElementById('deleteValue');
+        
+        if (deleteValueSelect) deleteValueSelect.innerHTML = '<option value="">Select value to delete...</option>';
+        
+        document.getElementById('deleteForm').style.display = 'none';
+    }
+
     async performFieldReplacement() {
         if (!this.selectedBulkModel) {
             UIUtils.showStatus('bulkStatus', 'error', 'No model selected');
@@ -240,11 +301,10 @@ class BulkOperationsManager {
         try {
             UIUtils.showStatus('bulkStatus', 'info', 'Performing field replacement...');
             
-            const response = await fetch('/api/bulk-replace', {
+            const response = await fetch(`/api/models/${this.selectedBulkModel}/replace-field-value`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    model_id: this.selectedBulkModel,
                     field_name: targetField,
                     old_value: fromValue,
                     new_value: toValue
@@ -255,7 +315,7 @@ class BulkOperationsManager {
             
             if (response.ok && result.success) {
                 UIUtils.showStatus('bulkStatus', 'success', 
-                    `Successfully replaced ${result.modified_count} items`);
+                    `Successfully replaced ${result.data?.replacement_count || 0} items`);
                 
                 // Reload model data to reflect changes
                 this.selectModel(this.selectedBulkModel);
@@ -272,48 +332,53 @@ class BulkOperationsManager {
         }
     }
 
-    async deleteByHierarchy() {
+    async deleteByFieldValue() {
         if (!this.selectedBulkModel) {
             UIUtils.showStatus('bulkStatus', 'error', 'No model selected');
             return;
         }
 
-        const hierarchyType = document.getElementById('hierarchyType').value;
-        const hierarchyValue = document.getElementById('hierarchyValue').value;
+        const fieldName = document.getElementById('deleteField').value;
+        const fieldValue = document.getElementById('deleteValue').value;
 
-        if (!hierarchyType || !hierarchyValue) {
-            UIUtils.showStatus('bulkStatus', 'error', 'Please select hierarchy type and enter a value');
+        if (!fieldName || !fieldValue) {
+            UIUtils.showStatus('bulkStatus', 'error', 'Please select field and enter a value');
             return;
         }
 
-        if (!confirm(`Delete all work items where ${hierarchyType} contains "${hierarchyValue}"?\n\nThis operation cannot be undone!`)) {
+        if (!confirm(`Delete all work items where "${fieldName}" equals "${fieldValue}"?\n\nThis operation cannot be undone!`)) {
             return;
         }
 
         try {
             UIUtils.showStatus('bulkStatus', 'info', 'Deleting work items...');
             
-            const response = await fetch('/api/bulk-delete', {
+            const response = await fetch(`/api/models/${this.selectedBulkModel}/delete-by-field-value`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    model_id: this.selectedBulkModel,
-                    hierarchy_type: hierarchyType,
-                    hierarchy_value: hierarchyValue
+                    field_name: fieldName,
+                    field_value: fieldValue
                 })
             });
 
             const result = await response.json();
             
             if (response.ok && result.success) {
-                UIUtils.showStatus('bulkStatus', 'success', 
-                    `Successfully deleted ${result.deleted_count} work items`);
+                const deletedCount = result.data?.deletion_count || 0;
+                const protectedCount = result.data?.protected_count || 0;
+                let message = `Successfully deleted ${deletedCount} work items`;
+                if (protectedCount > 0) {
+                    message += ` (protected ${protectedCount} items with children)`;
+                }
+                
+                UIUtils.showStatus('bulkStatus', 'success', message);
                 
                 // Reload model data to reflect changes
                 this.selectModel(this.selectedBulkModel);
                 
                 // Clear form
-                document.getElementById('hierarchyValue').value = '';
+                document.getElementById('deleteValue').value = '';
             } else {
                 throw new Error(result.error || result.detail || 'Delete operation failed');
             }
@@ -365,8 +430,12 @@ class BulkOperationsManager {
 // Initialize and expose globally
 window.BulkOperations = new BulkOperationsManager();
 
+// Global functions for backward compatibility
+window.loadBulkModels = () => window.BulkOperations.loadModels();
+window.loadBulkModelData = () => window.BulkOperations.loadModelData();
+
 // Global functions for backward compatibility (to be removed after full migration)
 window.loadModelsForBulk = () => window.BulkOperations.loadModels();
 window.selectModel = (id) => window.BulkOperations.selectModel(id);
 window.performFieldReplacement = () => window.BulkOperations.performFieldReplacement();
-window.deleteByHierarchy = () => window.BulkOperations.deleteByHierarchy();
+window.deleteByFieldValue = () => window.BulkOperations.deleteByFieldValue();

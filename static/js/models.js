@@ -6,6 +6,7 @@
 class ModelsManager {
     constructor() {
         this.selectedModelForManagement = null;
+        this.selectedModelsForMerge = new Set();
         this.models = [];
         this.init();
     }
@@ -119,28 +120,51 @@ class ModelsManager {
         if (models.length === 0) {
             container.innerHTML = '<p>No models imported yet. Upload an Excel file or download from GitHub to get started.</p>';
             document.getElementById('modelManagementImportedSection').style.display = 'none';
+            document.getElementById('modelMergeSection').style.display = 'none';
             return;
+        }
+        
+        // Show merge section if multiple models available
+        if (models.length > 1) {
+            document.getElementById('modelMergeSection').style.display = 'block';
         }
         
         container.innerHTML = models.map(model => `
             <div class="model-card ${this.selectedModelForManagement === model.id ? 'selected' : ''}" 
-                 onclick="window.ModelsManager.selectModelForManagement('${model.id}', '${model.filename}')"
-                 style="background: white; border-radius: 8px; padding: 1rem; border: 2px solid ${this.selectedModelForManagement === model.id ? '#004e89' : '#eee'}; margin-bottom: 1rem; cursor: pointer; transition: all 0.3s ease;">
-                <h3>${model.filename}</h3>
-                <div style="margin: 1rem 0; font-size: 0.9rem; color: #666;">
-                    <div>📅 ${new Date(model.created_at).toLocaleDateString()}</div>
-                    <div>🆔 ID: ${model.id}</div>
-                    <div>📍 Source: ${model.source}</div>
+                 style="background: white; border-radius: 8px; padding: 1rem; border: 2px solid ${this.selectedModelForManagement === model.id ? '#004e89' : '#eee'}; margin-bottom: 1rem; transition: all 0.3s ease;">
+                
+                <!-- Merge Checkbox -->
+                <div style="display: flex; align-items: center; margin-bottom: 1rem;">
+                    <input type="checkbox" id="merge-${model.id}" 
+                           ${this.selectedModelsForMerge.has(model.id) ? 'checked' : ''}
+                           onchange="window.ModelsManager.toggleMergeSelection('${model.id}', '${model.filename}')" 
+                           style="margin-right: 0.5rem;">
+                    <label for="merge-${model.id}" style="margin: 0; font-weight: bold; cursor: pointer;">Select for merge</label>
                 </div>
-                <div class="model-actions" style="display: flex; gap: 0.5rem;" onclick="event.stopPropagation();">
+                
+                <!-- Model Info (clickable for management selection) -->
+                <div onclick="window.ModelsManager.selectModelForManagement('${model.id}', '${model.filename}')" 
+                     style="cursor: pointer;">
+                    <h3>${model.filename}</h3>
+                    <div style="margin: 1rem 0; font-size: 0.9rem; color: #666;">
+                        <div>📅 ${new Date(model.created_at).toLocaleDateString()}</div>
+                        <div>🆔 ID: ${model.id}</div>
+                        <div>📍 Source: ${model.source}</div>
+                    </div>
+                </div>
+                
+                <!-- Model Actions -->
+                <div class="model-actions" style="display: flex; gap: 0.5rem; margin-top: 1rem;" onclick="event.stopPropagation();">
                     <button onclick="window.ModelsManager.deleteModelFromList('${model.id}', '${model.filename}')" 
                             class="btn btn-danger">🗑️ Delete</button>
-                    <button onclick="window.ModelsManager.prepareForMerge('${model.id}', '${model.filename}')" 
-                            class="btn btn-secondary" disabled title="Merge functionality coming soon">🔄 Merge</button>
                 </div>
+                
                 ${this.selectedModelForManagement === model.id ? '<div style="color: #004e89; font-weight: bold; margin-top: 1rem;">✓ Selected for Management</div>' : ''}
+                ${this.selectedModelsForMerge.has(model.id) ? '<div style="color: #28a745; font-weight: bold; margin-top: 0.5rem;">✓ Selected for Merge</div>' : ''}
             </div>
         `).join('');
+        
+        this.updateMergeSelectionDisplay();
     }
 
     async selectModelForManagement(modelId, filename) {
@@ -227,17 +251,116 @@ class ModelsManager {
         this.deleteModelFromList(this.selectedModelForManagement, modelName);
     }
 
-    // FUTURE: Model merge functionality will be implemented here
-    async prepareForMerge(modelId, filename) {
-        UIUtils.showOperationResult(`Model merge functionality is planned for Phase 9. Model "${filename}" will support merging with other models to combine work items and create unified process maps.`, 'info');
+    // Model merge functionality
+    toggleMergeSelection(modelId, filename) {
+        console.log('toggleMergeSelection called with:', modelId, filename);
+        if (this.selectedModelsForMerge.has(modelId)) {
+            this.selectedModelsForMerge.delete(modelId);
+        } else {
+            this.selectedModelsForMerge.add(modelId);
+        }
         
-        // TODO: Implement merge functionality
-        // - Select target model for merge
-        // - Handle hierarchy conflicts
-        // - Merge work items with duplicate detection
-        // - Update area paths and iterations
-        // - Create merged model with combined data
-        console.log('Merge preparation for model:', modelId, filename);
+        console.log('selectedModelsForMerge after toggle:', this.selectedModelsForMerge);
+        this.updateMergeSelectionDisplay();
+        // Refresh display to show updated checkboxes
+        this.displayModels(this.models);
+    }
+
+    updateMergeSelectionDisplay() {
+        const container = document.getElementById('selectedModelsForMerge');
+        if (!container) return;
+
+        if (this.selectedModelsForMerge.size === 0) {
+            container.innerHTML = '<span>No models selected</span>';
+            return;
+        }
+
+        const selectedModelNames = Array.from(this.selectedModelsForMerge).map(modelId => {
+            const model = this.models.find(m => m.id === modelId);
+            return model ? model.filename : modelId;
+        });
+
+        container.innerHTML = `
+            <div style="background: #e8f5e8; padding: 0.5rem; border-radius: 4px;">
+                <strong>${this.selectedModelsForMerge.size} models selected:</strong>
+                <ul style="margin: 0.5rem 0 0 1rem; padding: 0;">
+                    ${selectedModelNames.map(name => `<li>${name}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+    }
+
+    clearMergeSelection() {
+        this.selectedModelsForMerge.clear();
+        this.updateMergeSelectionDisplay();
+        this.displayModels(this.models);
+        document.getElementById('mergedModelName').value = '';
+    }
+
+    async performMerge() {
+        console.log('performMerge called');
+        console.log('selectedModelsForMerge:', this.selectedModelsForMerge);
+        console.log('selectedModelsForMerge.size:', this.selectedModelsForMerge.size);
+        
+        if (this.selectedModelsForMerge.size < 2) {
+            UIUtils.showStatus('modelsStatus', 'error', 'Please select at least 2 models to merge');
+            return;
+        }
+
+        const mergedModelName = document.getElementById('mergedModelName').value.trim();
+        if (!mergedModelName) {
+            UIUtils.showStatus('modelsStatus', 'error', 'Please enter a name for the merged model');
+            return;
+        }
+
+        const selectedModelIds = Array.from(this.selectedModelsForMerge);
+        const selectedModelNames = selectedModelIds.map(modelId => {
+            const model = this.models.find(m => m.id === modelId);
+            return model ? model.filename : modelId;
+        });
+
+        if (!confirm(`Merge ${selectedModelIds.length} models into "${mergedModelName}"?\n\nModels to merge:\n${selectedModelNames.join('\n')}\n\nThis will create a new unified model. Original models will be preserved.`)) {
+            return;
+        }
+
+        try {
+            UIUtils.showStatus('modelsStatus', 'info', 'Merging models...');
+            
+            const response = await fetch('/api/models/merge', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model_ids: selectedModelIds,
+                    merged_model_name: mergedModelName
+                })
+            });
+
+            const result = await response.json();
+            
+            if (response.ok && result.success) {
+                UIUtils.showStatus('modelsStatus', 'success', 
+                    `Successfully merged ${selectedModelIds.length} models into "${mergedModelName}"`);
+                
+                // Clear merge selection
+                this.clearMergeSelection();
+                
+                // Refresh models list
+                this.loadModels();
+                
+                // Refresh other components that depend on models
+                if (window.BulkOperations) {
+                    window.BulkOperations.loadModels();
+                }
+                if (window.TreeViewManager) {
+                    window.TreeViewManager.loadModels();
+                }
+            } else {
+                throw new Error(result.error || result.detail || 'Merge operation failed');
+            }
+        } catch (error) {
+            console.error('Merge error:', error);
+            UIUtils.showStatus('modelsStatus', 'error', `Merge error: ${error.message}`);
+        }
     }
 
     // Get models list for other components
@@ -248,6 +371,11 @@ class ModelsManager {
     // Get selected model for management
     getSelectedModel() {
         return this.selectedModelForManagement;
+    }
+
+    // Get selected models for merge
+    getSelectedModelsForMerge() {
+        return Array.from(this.selectedModelsForMerge);
     }
 }
 

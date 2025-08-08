@@ -24,7 +24,7 @@ function showTab(tabName) {
     }
     
     // Add active class to the correct tab button
-    const targetButton = document.querySelector(`[onclick="showTab('${tabName}')"]`);
+    const targetButton = document.querySelector(`[onclick="UIUtils.showTab('${tabName}')"]`);
     if (targetButton) {
         targetButton.classList.add('active');
     }
@@ -35,16 +35,16 @@ function showTab(tabName) {
             window.ModelsManager.loadModels();
         }
     } else if (tabName === 'azure') {
-        if (window.AzureDevOps) {
-            window.AzureDevOps.checkStatus();
+        if (window.AzureDevOpsManager) {
+            window.AzureDevOpsManager.checkStatus();
         }
     } else if (tabName === 'bulk') {
         if (window.BulkOperations) {
             window.BulkOperations.loadModels();
         }
     } else if (tabName === 'tree') {
-        if (window.TreeView) {
-            window.TreeView.refreshModels();
+        if (window.TreeViewManager) {
+            window.TreeViewManager.loadModels();
         }
     }
 }

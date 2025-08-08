@@ -128,88 +128,42 @@ class TreeViewManager {
     }
 
     buildHierarchy(workItems) {
-        const rootItems = [];
-        const parentStack = []; // Stack to keep track of parents at each level
+        console.log('Building hierarchy for', workItems.length, 'work items');
         
-        workItems.forEach((item, index) => {
-            // Get the title columns from custom_fields (that's where the Excel processor stores them)
-            const customFields = item.custom_fields || {};
-            const title1 = customFields['Title 1'] || item['Title 1'] || item.title1 || '';
-            const title2 = customFields['Title 2'] || item['Title 2'] || item.title2 || '';
-            const title3 = customFields['Title 3'] || item['Title 3'] || item.title3 || '';
-            const title4 = customFields['Title 4'] || item['Title 4'] || item.title4 || '';
-            const title5 = customFields['Title 5'] || item['Title 5'] || item.title5 || '';
-            
-            // Get other fields (check both custom_fields and direct properties)
-            const workItemType = customFields['Work Item Type'] || item['Work Item Type'] || item.work_item_type || item.type || '';
-            const state = customFields['State'] || item.State || item.state || '';
-            const catalogStatus = customFields['Catalog Status'] || item['Catalog Status'] || item.catalog_status || '';
-            
-            // Determine which title to use and the level
-            let currentTitle = '';
-            let level = 0;
-            
-            if (title1) {
-                currentTitle = title1;
-                level = 0;
-                // Reset parent stack for new level 1 item
-                parentStack.length = 0;
-            } else if (title2) {
-                currentTitle = title2;
-                level = 1;
-                // Truncate parent stack to level 0
-                parentStack.length = 1;
-            } else if (title3) {
-                currentTitle = title3;
-                level = 2;
-                // Truncate parent stack to level 1
-                parentStack.length = 2;
-            } else if (title4) {
-                currentTitle = title4;
-                level = 3;
-                // Truncate parent stack to level 2
-                parentStack.length = 3;
-            } else if (title5) {
-                currentTitle = title5;
-                level = 4;
-                // Truncate parent stack to level 3
-                parentStack.length = 4;
-            } else {
-                // Skip items with no title
-                return;
-            }
-            
-            // Create the tree node
-            const treeNode = {
-                title: currentTitle,
-                workItemType: workItemType,
-                state: state,
-                catalogStatus: catalogStatus,
-                level: level,
-                children: [],
-                originalItem: item
+        // First, deduplicate items by ID
+        const uniqueItems = this.deduplicateItems(workItems);
+        console.log('After deduplication:', uniqueItems.length, 'unique items');
+        
+        // Build parent-child relationships
+        const itemsById = {};
+        const rootItems = [];
+        
+        // Index all items by ID
+        uniqueItems.forEach(item => {
+            const itemId = item.ID || item.id || `item_${Math.random().toString(36).substr(2, 9)}`;
+            itemsById[itemId] = {
+                ...item,
+                id: itemId,
+                children: []
             };
+        });
+        
+        // Build parent-child relationships
+        uniqueItems.forEach(item => {
+            const itemId = item.ID || item.id || `item_${Math.random().toString(36).substr(2, 9)}`;
+            const parentId = item['Parent ID'] || item.parent_id || item.parentId;
             
-            // Add to appropriate parent or root
-            if (level === 0) {
-                // Root item
-                rootItems.push(treeNode);
-                parentStack[0] = treeNode;
+            if (parentId && itemsById[parentId]) {
+                // Add to parent's children
+                itemsById[parentId].children.push(itemsById[itemId]);
             } else {
-                // Child item - add to the parent at level-1
-                const parent = parentStack[level - 1];
-                if (parent) {
-                    parent.children.push(treeNode);
-                    parentStack[level] = treeNode;
-                } else {
-                    // Fallback: add to root if no parent found
-                    rootItems.push(treeNode);
-                    parentStack[level] = treeNode;
-                }
+                // Root level item
+                rootItems.push(itemsById[itemId]);
             }
         });
         
-        return rootItems;
+        console.log('Found', rootItems.length, 'root items');
+        return rootItems; // Return root items directly, no area path grouping
     }
     
     deduplicateItems(workItems) {
@@ -237,14 +191,19 @@ class TreeViewManager {
     }
 
     generateTreeHTML(rootItems, level = 0) {
-        if (!Array.isArray(rootItems)) return '<p>No items to display</p>';
+        if (!Array.isArray(rootItems)) {
+            return '<p>No items to display</p>';
+        }
+        
         let html = '';
         
         rootItems.forEach(item => {
-            const title = item.title || 'Untitled';
-            const workItemType = item.workItemType || 'Unknown';
-            const state = item.state || 'No State';
-            const catalogStatus = item.catalogStatus || '';
+            const itemId = item.ID || item.id || 'N/A';
+            const title = item.Title || item.title || 'Untitled';
+            const workItemType = item['Work Item Type'] || item.type || 'Unknown';
+            const state = item.State || item.state || 'No State';
+            const priority = item.Priority || item.priority || '';
+            const assignedTo = item['Assigned To'] || item.assigned_to || '';
             const hasChildren = item.children && item.children.length > 0;
             
             // Choose icon based on work item type
@@ -264,15 +223,26 @@ class TreeViewManager {
             
             html += `
                 <div class="tree-node" style="margin-left: ${level * 20}px;">
-                    <div class="tree-item enhanced-item ${hasChildren ? 'has-children' : ''}">
-                        ${hasChildren ? `<span class="tree-toggle expandable" onclick="event.stopPropagation(); window.TreeViewManager.toggleChildren(this)">▼</span>` : '<span class="tree-toggle">•</span>'}
-                        <span class="item-icon">${icon}</span>
-                        <span class="item-title">${title}</span>
-                        <span class="item-type type-${workItemType.toLowerCase().replace(/\s+/g, '-')}">[${workItemType}]</span>
-                        <span class="item-state state-${state.toLowerCase().replace(/\s+/g, '-')}">${state}</span>
-                        ${catalogStatus ? `<span class="item-catalog-status">(${catalogStatus})</span>` : ''}
+                    <div class="tree-item enhanced-item ${hasChildren ? 'has-children' : ''}" 
+                         onclick="window.TreeViewManager.showItemDetails('${itemId}')" 
+                         title="Click to view details">
+                        <div class="item-header">
+                            ${hasChildren ? `<span class="tree-toggle expandable" onclick="event.stopPropagation(); window.TreeViewManager.toggleChildren(this)">▼</span>` : '<span class="tree-toggle">•</span>'}
+                            <span class="item-icon">${icon}</span>
+                            <span class="item-id">#${itemId}</span>
+                            <span class="item-type type-${workItemType.toLowerCase().replace(/\s+/g, '-')}">[${workItemType}]</span>
+                            <span class="item-state state-${state.toLowerCase().replace(/\s+/g, '-')}">${state}</span>
+                        </div>
+                        <div class="item-title">${title}</div>
+                        ${priority ? `<div class="item-meta">Priority: ${priority}</div>` : ''}
+                        ${assignedTo ? `<div class="item-meta">Assigned: ${assignedTo}</div>` : ''}
                     </div>
-                    ${hasChildren ? `<div class="tree-children">${this.generateTreeHTML(item.children, level + 1)}</div>` : ''}
+                    
+                    ${hasChildren ? `
+                        <div class="tree-children">
+                            ${this.generateTreeHTML(item.children, level + 1)}
+                        </div>
+                    ` : ''}
                 </div>
             `;
         });

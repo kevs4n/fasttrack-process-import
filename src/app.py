@@ -84,6 +84,10 @@ class FieldDeletionRequest(BaseModel):
     field_name: str
     field_value: str
 
+class ModelMergeRequest(BaseModel):
+    model_ids: list[str]
+    merged_model_name: str
+
 @app.get("/", response_class=HTMLResponse)
 async def index():
     """Main dashboard"""
@@ -121,6 +125,26 @@ async def list_github_files():
         return ApiResponse(success=True, data={"files": files})
     except Exception as e:
         logger.error("Error fetching GitHub files: %s", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/github/repos")
+async def list_github_repos():
+    """Get list of available GitHub repositories"""
+    try:
+        repos = github_client.list_repositories()
+        return ApiResponse(success=True, data={"repos": repos})
+    except Exception as e:
+        logger.error("Error fetching GitHub repositories: %s", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/github/repos/{repo_name:path}/files")
+async def list_repo_files(repo_name: str, path: str = ""):
+    """Get list of files from a specific GitHub repository"""
+    try:
+        files = github_client.list_repo_files(repo_name, path)
+        return ApiResponse(success=True, data={"files": files})
+    except Exception as e:
+        logger.error("Error fetching files from repository %s: %s", repo_name, str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/github/download")
@@ -533,6 +557,126 @@ async def delete_model(model_id: str):
         raise
     except Exception as e:
         logger.error("Error deleting model %s: %s", model_id, str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/models/merge")
+async def merge_models(request: ModelMergeRequest):
+    """Merge multiple models into a single unified model"""
+    try:
+        if len(request.model_ids) < 2:
+            raise HTTPException(status_code=400, detail="At least 2 models are required for merging")
+        
+        if not request.merged_model_name.strip():
+            raise HTTPException(status_code=400, detail="Merged model name is required")
+        
+        # Load all models to be merged
+        models_data = []
+        total_work_items = 0
+        
+        for model_id in request.model_ids:
+            model_data = excel_processor.get_model_data(model_id)
+            if not model_data:
+                raise HTTPException(status_code=404, detail=f"Model {model_id} not found")
+            
+            models_data.append({
+                'id': model_id,
+                'data': model_data,
+                'filename': model_data.get('filename', f'Model {model_id}')
+            })
+            
+            work_items = model_data.get('work_items', [])
+            total_work_items += len(work_items)
+        
+        # Create merged model data
+        merged_work_items = []
+        merged_area_paths = set()
+        merged_iterations = set()
+        merged_work_item_types = set()
+        source_models = []
+        
+        # Track work item IDs to handle duplicates
+        work_item_ids = set()
+        id_counter = 1
+        
+        for model_info in models_data:
+            model_data = model_info['data']
+            source_models.append(model_info['filename'])
+            
+            work_items = model_data.get('work_items', [])
+            
+            for item in work_items:
+                # Handle duplicate IDs by renaming them
+                original_id = item.get('ID', item.get('id', ''))
+                if original_id in work_item_ids or not original_id:
+                    # Generate new unique ID
+                    new_id = f"MERGED_{id_counter:04d}"
+                    id_counter += 1
+                    item['ID'] = new_id
+                    item['Original_ID'] = original_id
+                    item['Source_Model'] = model_info['filename']
+                else:
+                    work_item_ids.add(original_id)
+                    item['Source_Model'] = model_info['filename']
+                
+                # Collect unique values for summary
+                area_path = item.get('custom_fields', {}).get('Area Path', item.get('area_path', ''))
+                iteration_path = item.get('custom_fields', {}).get('Iteration Path', item.get('iteration', ''))
+                work_item_type = item.get('Work Item Type', item.get('type', ''))
+                
+                if area_path:
+                    merged_area_paths.add(area_path)
+                if iteration_path:
+                    merged_iterations.add(iteration_path)
+                if work_item_type:
+                    merged_work_item_types.add(work_item_type)
+                
+                merged_work_items.append(item)
+        
+        # Generate unique ID for merged model
+        import uuid
+        merged_model_id = str(uuid.uuid4())
+        
+        # Create merged model data structure
+        merged_model_data = {
+            'id': merged_model_id,
+            'filename': request.merged_model_name,
+            'source': 'merged',
+            'work_items': merged_work_items,
+            'summary': {
+                'total_rows': len(merged_work_items),
+                'unique_area_paths': len(merged_area_paths),
+                'unique_iterations': len(merged_iterations),
+                'unique_work_item_types': len(merged_work_item_types),
+                'work_item_types': list(merged_work_item_types),
+                'source_models': source_models,
+                'source_model_count': len(models_data),
+                'merged_at': datetime.utcnow().isoformat()
+            },
+            'created_at': datetime.utcnow().isoformat(),
+            'version': '1.0'
+        }
+        
+        # Save the merged model
+        excel_processor._save_model_data(merged_model_id, merged_model_data)
+        
+        return ApiResponse(
+            success=True,
+            message=f"Successfully merged {len(request.model_ids)} models into '{request.merged_model_name}'",
+            data={
+                "merged_model_id": merged_model_id,
+                "merged_model_name": request.merged_model_name,
+                "total_work_items": len(merged_work_items),
+                "source_models": source_models,
+                "unique_area_paths": len(merged_area_paths),
+                "unique_iterations": len(merged_iterations),
+                "unique_work_item_types": len(merged_work_item_types)
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error merging models: %s", str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/azure-devops/status")
