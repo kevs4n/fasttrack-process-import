@@ -146,17 +146,18 @@ class AzureDevOpsManager {
                     </div>
                 </div>
                 
-                <div class="phase-notice">
-                    <h5>⚠️ Azure DevOps Integration - Phase 10 Feature</h5>
-                    <p>This functionality is planned for Phase 10 of the modularization roadmap. When implemented, it will:</p>
+                <div class="ready-notice">
+                    <h5>✅ Ready for Azure DevOps Import</h5>
+                    <p>This model is ready to be imported into Azure DevOps. The import will:</p>
                     <ul>
-                        <li>Connect to your Azure DevOps organization</li>
-                        <li>Map Excel columns to Azure DevOps work item fields</li>
-                        <li>Create work items with proper hierarchies and relationships</li>
-                        <li>Handle area paths, iterations, and custom fields</li>
-                        <li>Provide bulk creation with progress tracking</li>
-                        <li>Support both new projects and existing project updates</li>
+                        <li>Create work items with all field data preserved</li>
+                        <li>Map Excel columns to proper Azure DevOps work item fields</li>
+                        <li>Maintain hierarchical relationships and area paths</li>
+                        <li>Include custom fields like Process Sequence ID, Catalog Status, etc.</li>
+                        <li>Preserve source tracking information for traceability</li>
+                        <li>Support both demo mode and real Azure DevOps imports</li>
                     </ul>
+                    <p><strong>Test with Demo Mode:</strong> Use organization="demo", project="demo", pat_token="demo-token" to test without affecting real Azure DevOps data.</p>
                 </div>
             </div>
         `;
@@ -175,9 +176,43 @@ class AzureDevOpsManager {
             return;
         }
 
-        // FUTURE: Implement actual Azure DevOps connection test
-        UIUtils.showStatus('azureStatus', 'info', 'Azure DevOps connection testing is planned for Phase 10');
-        
+        UIUtils.showStatus('azureStatus', 'info', 'Testing Azure DevOps connection...');
+
+        try {
+            const response = await fetch('/api/azure-devops/configure', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    organization: organization,
+                    project: project,
+                    pat_token: pat
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                UIUtils.showStatus('azureStatus', 'success', result.message || 'Azure DevOps connection successful');
+                this.isConnected = true;
+                this.azureConfig = { organization, project };
+                
+                // Update status indicators
+                await this.checkStatus();
+                
+                // Show the create section if a model is selected
+                if (this.selectedModel) {
+                    document.getElementById('azureCreateSection').style.display = 'block';
+                }
+            } else {
+                throw new Error(result.error || result.detail || 'Connection failed');
+            }
+        } catch (error) {
+            console.error('Azure DevOps connection error:', error);
+            UIUtils.showStatus('azureStatus', 'error', `Connection failed: ${error.message}`);
+            this.isConnected = false;
+        }
     }
 
     async checkStatus() {
@@ -200,9 +235,15 @@ class AzureDevOpsManager {
         if (status.configured && status.connection_test) {
             if (indicator) indicator.className = 'status-indicator status-connected';
             if (text) text.textContent = `Connected to ${status.organization}/${status.project}`;
+            this.isConnected = true;
+        } else if (status.configured && !status.connection_test) {
+            if (indicator) indicator.className = 'status-indicator status-error';
+            if (text) text.textContent = `Configuration error - ${status.organization}/${status.project}`;
+            this.isConnected = false;
         } else {
             if (indicator) indicator.className = 'status-indicator status-disconnected';
-            if (text) text.textContent = 'Phase 10 Feature - Coming Soon';
+            if (text) text.textContent = 'Not connected - Click "Test Connection" to connect';
+            this.isConnected = false;
         }
     }
 
@@ -212,28 +253,132 @@ class AzureDevOpsManager {
             return;
         }
 
-        // FUTURE: Implement work item creation
-        UIUtils.showOperationResult(`
-            Azure DevOps Work Item Creation (Phase 10 Feature)
-            
-            This will create work items in Azure DevOps from your selected model:
-            
-            📋 Process Overview:
-            1. Map Excel columns to Azure DevOps fields
-            2. Validate work item types and states
-            3. Create area paths and iterations if needed
-            4. Bulk create work items with proper hierarchy
-            5. Link related work items
-            6. Provide detailed creation report
-            
-            🔄 Benefits:
-            • Seamless transition from Excel to Azure DevOps
-            • Preserve work item relationships
-            • Maintain process hierarchy
-            • Enable team collaboration
-            
-            This feature will be available after Phase 9 (Model Merge) completion.
-        `, 'info');
+        if (!this.isConnected) {
+            UIUtils.showStatus('azureStatus', 'error', 'Azure DevOps not connected. Please test connection first.');
+            return;
+        }
+
+        // Confirm with user
+        const confirmMessage = `This will create work items in Azure DevOps from your selected model.
+        
+Are you sure you want to proceed?`;
+        
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+
+        UIUtils.showStatus('azureStatus', 'info', 'Creating work items in Azure DevOps...');
+
+        try {
+            const response = await fetch(`/api/azure-devops/import/${this.selectedModel}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                const summary = result.data.import_summary;
+                
+                let statusMessage = `Successfully created ${summary.imported_count} work items in Azure DevOps!`;
+                if (summary.failed_count > 0) {
+                    statusMessage += ` (${summary.failed_count} failed)`;
+                }
+
+                UIUtils.showStatus('azureStatus', 'success', statusMessage);
+
+                // Show detailed results
+                this.showImportResults(summary);
+                
+            } else {
+                throw new Error(result.error || result.detail || 'Import failed');
+            }
+        } catch (error) {
+            console.error('Azure DevOps import error:', error);
+            UIUtils.showStatus('azureStatus', 'error', `Import failed: ${error.message}`);
+        }
+    }
+
+    showImportResults(summary) {
+        const isDemo = summary.demo_mode;
+        const demoNote = isDemo ? ' (Demo Mode - No actual work items were created)' : '';
+        
+        const resultHtml = `
+            <div class="import-results">
+                <h4>🎉 Import Results${demoNote}</h4>
+                <div class="stats-grid">
+                    <div class="stat-card ${summary.imported_count > 0 ? 'success' : ''}">
+                        <h5>Imported</h5>
+                        <div class="stat-number">${summary.imported_count}</div>
+                    </div>
+                    <div class="stat-card ${summary.failed_count > 0 ? 'error' : ''}">
+                        <h5>Failed</h5>
+                        <div class="stat-number">${summary.failed_count}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h5>Total</h5>
+                        <div class="stat-number">${summary.total_items}</div>
+                    </div>
+                </div>
+                
+                ${summary.work_items.length > 0 ? `
+                <div class="preview-table">
+                    <h5>Created Work Items (First 10)</h5>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Title</th>
+                                    <th>Type</th>
+                                    <th>State</th>
+                                    <th>Area Path</th>
+                                    ${isDemo ? '<th>Demo URL</th>' : '<th>Azure DevOps URL</th>'}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${summary.work_items.slice(0, 10).map(item => `
+                                    <tr>
+                                        <td>${item.id}</td>
+                                        <td title="${item.title}">${item.title.length > 50 ? item.title.substring(0, 50) + '...' : item.title}</td>
+                                        <td>${item.type}</td>
+                                        <td>${item.state}</td>
+                                        <td>${item.area_path || 'N/A'}</td>
+                                        <td>${item.url ? `<a href="${item.url}" target="_blank">Open</a>` : 'N/A'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                ` : ''}
+                
+                <div class="import-info">
+                    <p><strong>Import Date:</strong> ${new Date(summary.import_date).toLocaleString()}</p>
+                    ${isDemo ? `
+                    <div class="demo-notice">
+                        <h5>💡 Demo Mode Active</h5>
+                        <p>This was a demo import. To create actual work items in Azure DevOps:</p>
+                        <ul>
+                            <li>Enter your real Azure DevOps organization name</li>
+                            <li>Enter your real project name</li>
+                            <li>Enter a valid Personal Access Token with Work Items (read & write) permissions</li>
+                            <li>Test the connection and then run the import again</li>
+                        </ul>
+                    </div>
+                    ` : `
+                    <div class="success-notice">
+                        <h5>✅ Real Import Complete</h5>
+                        <p>Work items have been successfully created in your Azure DevOps project!</p>
+                    </div>
+                    `}
+                </div>
+            </div>
+        `;
+
+        UIUtils.showOperationResult(resultHtml, 'success');
     }
 
     // Helper methods

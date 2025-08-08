@@ -148,10 +148,25 @@ class AzureDevOpsClient:
                     created_item = {
                         'id': f"demo-{i+1}",
                         'title': item.get('title', f'Demo Item {i+1}'),
-                        'work_item_type': item.get('work_item_type', 'Task'),
-                        'state': 'New',
+                        'type': item.get('type', item.get('custom_fields', {}).get('Work Item Type', 'Task')),
+                        'state': item.get('state', item.get('custom_fields', {}).get('State', 'New')),
                         'url': f"https://demo.visualstudio.com/demo/_workitems/edit/demo-{i+1}",
-                        'created_date': datetime.utcnow().isoformat()
+                        'created_date': datetime.utcnow().isoformat(),
+                        'created_by': 'Demo User',
+                        'area_path': item.get('area_path', item.get('custom_fields', {}).get('Area Path', 'Demo')),
+                        'iteration_path': item.get('iteration_path', item.get('custom_fields', {}).get('Iteration Path', '')),
+                        'description': item.get('description', '')[:100] + '...' if item.get('description') else '',
+                        'tags': item.get('tags', ''),
+                        'priority': item.get('priority', 2),
+                        'source_fields': {
+                            'source_sheet': item.get('source_sheet'),
+                            'source_row': item.get('source_row'),
+                            'hierarchy_level': item.get('hierarchy_level'),
+                            'process_sequence_id': item.get('custom_fields', {}).get('Process Sequence ID'),
+                            'catalog_status': item.get('custom_fields', {}).get('Catalog status'),
+                            'article_status': item.get('custom_fields', {}).get('Article status'),
+                            'workload_type': item.get('custom_fields', {}).get('Workload Type')
+                        }
                     }
                     imported_items.append(created_item)
                     
@@ -207,19 +222,20 @@ class AzureDevOpsClient:
     def _create_work_item(self, item_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Create a single work item in Azure DevOps"""
         try:
-            work_item_type = item_data.get('type', 'User Story')
+            # Use the exact work item type from the model
+            work_item_type = item_data.get('type', item_data.get('custom_fields', {}).get('Work Item Type', 'User Story'))
             
             # Build the work item fields
             fields = []
             
-            # Required fields
+            # Required fields - copy from model
             fields.append({
                 'op': 'add',
                 'path': '/fields/System.Title',
                 'value': item_data.get('title', 'Untitled')
             })
             
-            # Optional fields
+            # System fields - copy directly from model
             if item_data.get('description'):
                 fields.append({
                     'op': 'add',
@@ -227,12 +243,34 @@ class AzureDevOpsClient:
                     'value': item_data['description']
                 })
             
+            if item_data.get('state'):
+                fields.append({
+                    'op': 'add',
+                    'path': '/fields/System.State',
+                    'value': item_data['state']
+                })
+            
             if item_data.get('area_path'):
+                # Use area path directly from model
+                area_path = item_data['area_path']
+                # Only prepend project if not already included
+                if not area_path.startswith(self.project):
+                    area_path = f"{self.project}\\{area_path}"
                 fields.append({
                     'op': 'add',
                     'path': '/fields/System.AreaPath',
-                    'value': f"{self.project}\\{item_data['area_path']}"
+                    'value': area_path
                 })
+            
+            if item_data.get('iteration_path'):
+                iteration_path = item_data['iteration_path']
+                if iteration_path and not iteration_path.startswith(self.project):
+                    iteration_path = f"{self.project}\\{iteration_path}"
+                    fields.append({
+                        'op': 'add',
+                        'path': '/fields/System.IterationPath',
+                        'value': iteration_path
+                    })
             
             if item_data.get('tags'):
                 fields.append({
@@ -248,15 +286,76 @@ class AzureDevOpsClient:
                     'value': item_data['priority']
                 })
             
-            # Add custom fields
-            for key, value in item_data.get('custom_fields', {}).items():
-                # Only add if it's a reasonable custom field name
-                if key and len(str(value).strip()) > 0:
+            # Add all custom fields from the model
+            custom_fields = item_data.get('custom_fields', {})
+            for key, value in custom_fields.items():
+                if key and value is not None and str(value).strip():
+                    # Map common field names to standard Azure DevOps fields
+                    field_mapping = {
+                        'Work Item Type': 'System.WorkItemType',  # Already handled above
+                        'State': 'System.State',  # Already handled above  
+                        'Title': 'System.Title',  # Already handled above
+                        'Description': 'System.Description',  # Already handled above
+                        'Area Path': 'System.AreaPath',  # Already handled above
+                        'Iteration Path': 'System.IterationPath',  # Already handled above
+                        'Tags': 'System.Tags',  # Already handled above
+                        'Priority': 'Microsoft.VSTS.Common.Priority',  # Already handled above
+                        'Process Sequence ID': 'Custom.ProcessSequenceID',
+                        'Catalog status': 'Custom.CatalogStatus',
+                        'Article status': 'Custom.ArticleStatus',
+                        'Microsoft Learn URL': 'Custom.MicrosoftLearnURL',
+                        'Workload Type': 'Custom.WorkloadType'
+                    }
+                    
+                    # Skip fields already handled
+                    if key in ['Work Item Type', 'State', 'Title', 'Description', 'Area Path', 'Iteration Path', 'Tags', 'Priority']:
+                        continue
+                    
+                    # Use mapping if available, otherwise create custom field
+                    field_path = field_mapping.get(key, f'Custom.{key.replace(" ", "").replace("-", "")}')
+                    
                     fields.append({
                         'op': 'add',
-                        'path': f'/fields/Custom.{key.replace(" ", "")}',
+                        'path': f'/fields/{field_path}',
                         'value': str(value)
                     })
+            
+            # Add source tracking fields
+            if item_data.get('source_sheet'):
+                fields.append({
+                    'op': 'add',
+                    'path': '/fields/Custom.SourceSheet',
+                    'value': item_data['source_sheet']
+                })
+            
+            if item_data.get('source_row') is not None:
+                fields.append({
+                    'op': 'add',
+                    'path': '/fields/Custom.SourceRow',
+                    'value': str(item_data['source_row'])
+                })
+            
+            # Add source tracking fields
+            if item_data.get('source_sheet'):
+                fields.append({
+                    'op': 'add',
+                    'path': '/fields/Custom.SourceSheet',
+                    'value': item_data['source_sheet']
+                })
+            
+            if item_data.get('source_row') is not None:
+                fields.append({
+                    'op': 'add',
+                    'path': '/fields/Custom.SourceRow',
+                    'value': str(item_data['source_row'])
+                })
+            
+            if item_data.get('hierarchy_level') is not None:
+                fields.append({
+                    'op': 'add',
+                    'path': '/fields/Custom.HierarchyLevel',
+                    'value': str(item_data['hierarchy_level'])
+                })
             
             # Create the work item
             url = f"{self.base_url}/{self.organization}/{self.project}/_apis/wit/workitems/${work_item_type}?api-version=7.0"
@@ -275,7 +374,16 @@ class AzureDevOpsClient:
                     'title': work_item['fields']['System.Title'],
                     'type': work_item['fields']['System.WorkItemType'],
                     'state': work_item['fields']['System.State'],
-                    'url': work_item['_links']['html']['href']
+                    'url': work_item['_links']['html']['href'],
+                    'created_date': work_item['fields']['System.CreatedDate'],
+                    'created_by': work_item['fields']['System.CreatedBy']['displayName'],
+                    'area_path': work_item['fields'].get('System.AreaPath'),
+                    'iteration_path': work_item['fields'].get('System.IterationPath'),
+                    'source_fields': {
+                        'source_sheet': item_data.get('source_sheet'),
+                        'source_row': item_data.get('source_row'),
+                        'hierarchy_level': item_data.get('hierarchy_level')
+                    }
                 }
             else:
                 logger.error(f"Failed to create work item. Status: {response.status_code}, Response: {response.text}")
