@@ -15,6 +15,18 @@ class ModelsManager {
         console.log('ModelsManager initialized');
         // Set up event listeners for file upload
         this.setupFileUpload();
+        // Set up event listeners for merge functionality
+        this.setupMergeListeners();
+    }
+
+    setupMergeListeners() {
+        // Add event listener for merge name input
+        const mergeNameInput = document.getElementById('mergedModelName');
+        if (mergeNameInput) {
+            mergeNameInput.addEventListener('input', () => {
+                this.updateMergeButtonState();
+            });
+        }
     }
 
     setupFileUpload() {
@@ -272,22 +284,45 @@ class ModelsManager {
 
         if (this.selectedModelsForMerge.size === 0) {
             container.innerHTML = '<span>No models selected</span>';
-            return;
+        } else {
+            const selectedModelNames = Array.from(this.selectedModelsForMerge).map(modelId => {
+                const model = this.models.find(m => m.id === modelId);
+                return model ? model.filename : modelId;
+            });
+
+            container.innerHTML = `
+                <div style="background: #e8f5e8; padding: 0.5rem; border-radius: 4px;">
+                    <strong>${this.selectedModelsForMerge.size} models selected:</strong>
+                    <ul style="margin: 0.5rem 0 0 1rem; padding: 0;">
+                        ${selectedModelNames.map(name => `<li>${name}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
         }
+        
+        // Update merge button state
+        this.updateMergeButtonState();
+    }
 
-        const selectedModelNames = Array.from(this.selectedModelsForMerge).map(modelId => {
-            const model = this.models.find(m => m.id === modelId);
-            return model ? model.filename : modelId;
-        });
-
-        container.innerHTML = `
-            <div style="background: #e8f5e8; padding: 0.5rem; border-radius: 4px;">
-                <strong>${this.selectedModelsForMerge.size} models selected:</strong>
-                <ul style="margin: 0.5rem 0 0 1rem; padding: 0;">
-                    ${selectedModelNames.map(name => `<li>${name}</li>`).join('')}
-                </ul>
-            </div>
-        `;
+    updateMergeButtonState() {
+        const mergeButton = document.getElementById('mergeModelsButton');
+        const mergeNameInput = document.getElementById('mergedModelName');
+        
+        if (!mergeButton || !mergeNameInput) return;
+        
+        const hasEnoughModels = this.selectedModelsForMerge.size >= 2;
+        const hasName = mergeNameInput.value.trim().length > 0;
+        
+        mergeButton.disabled = !(hasEnoughModels && hasName);
+        
+        // Provide visual feedback
+        if (hasEnoughModels && hasName) {
+            mergeButton.style.opacity = '1';
+            mergeButton.style.cursor = 'pointer';
+        } else {
+            mergeButton.style.opacity = '0.6';
+            mergeButton.style.cursor = 'not-allowed';
+        }
     }
 
     clearMergeSelection() {
@@ -295,6 +330,7 @@ class ModelsManager {
         this.updateMergeSelectionDisplay();
         this.displayModels(this.models);
         document.getElementById('mergedModelName').value = '';
+        this.updateMergeButtonState();
     }
 
     async performMerge() {

@@ -83,7 +83,7 @@ class BulkOperationsManager {
         // Clear displays
         document.getElementById('modelData').style.display = 'none';
         document.getElementById('fieldReplacementSection').style.display = 'none';
-        document.getElementById('hierarchySection').style.display = 'none';
+        document.getElementById('fieldDeletionSection').style.display = 'none';
         
         // Clear forms
         this.clearFieldValues();
@@ -150,7 +150,7 @@ class BulkOperationsManager {
         
         container.style.display = 'block';
         document.getElementById('fieldReplacementSection').style.display = 'block';
-        document.getElementById('hierarchySection').style.display = 'block';
+        document.getElementById('fieldDeletionSection').style.display = 'block';
     }
 
     setupFieldReplacementUI() {
@@ -366,11 +366,7 @@ class BulkOperationsManager {
             
             if (response.ok && result.success) {
                 const deletedCount = result.data?.deletion_count || 0;
-                const protectedCount = result.data?.protected_count || 0;
-                let message = `Successfully deleted ${deletedCount} work items`;
-                if (protectedCount > 0) {
-                    message += ` (protected ${protectedCount} items with children)`;
-                }
+                let message = `Successfully deleted ${deletedCount} work items where "${fieldName}" = "${fieldValue}"`;
                 
                 UIUtils.showStatus('bulkStatus', 'success', message);
                 

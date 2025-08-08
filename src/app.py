@@ -479,7 +479,7 @@ async def replace_field_value(model_id: str, request: FieldReplacementRequest):
 
 @app.post("/api/models/{model_id}/delete-by-field-value")
 async def delete_by_field_value(model_id: str, request: FieldDeletionRequest):
-    """Delete all work items where a field equals a specific value (protects items with children)"""
+    """Delete all work items where a field equals a specific value (simple field/value matching deletion)"""
     try:
         result = excel_processor.bulk_delete_items_by_field_value(
             model_id=model_id,
@@ -488,8 +488,7 @@ async def delete_by_field_value(model_id: str, request: FieldDeletionRequest):
         )
         
         message = f"Deleted {result['deletion_count']} items where '{request.field_name}' = '{request.field_value}'"
-        if result['protected_count'] > 0:
-            message += f" (protected {result['protected_count']} items with children)"
+        message += f" (from {result['original_count']} total items)"
         
         return ApiResponse(
             success=True,

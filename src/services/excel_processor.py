@@ -530,7 +530,7 @@ class ExcelProcessor:
         }
     
     def bulk_delete_items_by_field_value(self, model_id: str, field_name: str, field_value: str) -> Dict[str, Any]:
-        """Bulk delete work items by field value, but preserve items that have children"""
+        """Bulk delete work items by field value - simple field/value matching deletion"""
         model_data = self.get_model_data(model_id)
         if not model_data:
             raise ValueError(f"Model {model_id} not found")
@@ -538,8 +538,10 @@ class ExcelProcessor:
         work_items = model_data.get('work_items', [])
         original_count = len(work_items)
         
-        # Find items that match the deletion criteria
-        items_to_delete = []
+        # Find items that match the deletion criteria and separate them
+        remaining_items = []
+        deleted_items = []
+        
         for item in work_items:
             # Check if item matches deletion criteria
             matches = False
@@ -552,50 +554,6 @@ class ExcelProcessor:
                 matches = True
             
             if matches:
-                items_to_delete.append(item)
-        
-        # Build a hierarchy map to check for children
-        hierarchy_map = {}  # parent_area_path -> [child_items]
-        
-        for item in work_items:
-            area_path = item.get('custom_fields', {}).get('Area Path', item.get('area_path', ''))
-            hierarchy_level = item.get('hierarchy_level', 1)
-            
-            # Find potential children (items with this item as parent in their area path)
-            for other_item in work_items:
-                other_area_path = other_item.get('custom_fields', {}).get('Area Path', other_item.get('area_path', ''))
-                other_level = other_item.get('hierarchy_level', 1)
-                
-                # Check if other_item is a child of this item
-                if (other_level > hierarchy_level and 
-                    other_area_path.startswith(area_path) and 
-                    other_area_path != area_path):
-                    
-                    if area_path not in hierarchy_map:
-                        hierarchy_map[area_path] = []
-                    hierarchy_map[area_path].append(other_item)
-        
-        # Filter out items that have children
-        items_to_actually_delete = []
-        items_protected = []
-        
-        for item in items_to_delete:
-            area_path = item.get('custom_fields', {}).get('Area Path', item.get('area_path', ''))
-            
-            # Check if this item has children
-            has_children = area_path in hierarchy_map and len(hierarchy_map[area_path]) > 0
-            
-            if has_children:
-                items_protected.append(item)
-            else:
-                items_to_actually_delete.append(item)
-        
-        # Remove items that don't have children
-        remaining_items = []
-        deleted_items = []
-        
-        for item in work_items:
-            if item in items_to_actually_delete:
                 deleted_items.append(item)
             else:
                 remaining_items.append(item)
@@ -615,17 +573,15 @@ class ExcelProcessor:
         if deletion_count > 0:
             self._save_model_data(model_id, model_data)
         
-        logger.info(f"Deleted {deletion_count} items where '{field_name}' = '{field_value}' in model {model_id}. Protected {len(items_protected)} items with children.")
+        logger.info(f"Deleted {deletion_count} items where '{field_name}' = '{field_value}' in model {model_id}")
         
         return {
             'model_id': model_id,
             'field_name': field_name,
             'field_value': field_value,
             'deletion_count': deletion_count,
-            'protected_count': len(items_protected),
             'original_count': original_count,
             'remaining_count': len(remaining_items),
             'deleted_items': [{'id': item['id'], 'title': item['title']} for item in deleted_items],
-            'protected_items': [{'id': item['id'], 'title': item['title'], 'reason': 'has_children'} for item in items_protected],
             'updated_summary': model_data['summary']
         }

@@ -82,7 +82,12 @@
             <!-- Models Tab -->
             <div id="models-tab" class="tab-content">
                 <h2>Imported Process Models</h2>
-                <button class="btn btn-secondary" onclick="window.ModelsManager.loadModels()">🔄 Refresh List</button>
+                
+                <div class="models-controls">
+                    <div class="models-actions">
+                        <button onclick="window.ModelsManager.loadModels()" class="btn btn-secondary">🔄 Refresh List</button>
+                    </div>
+                </div>
                 
                 <!-- Model Management Section -->
                 <div class="bulk-section" id="modelManagementImportedSection" style="display: none;">
@@ -165,10 +170,10 @@
                         <select id="treeModelSelect" class="form-control" onchange="window.TreeViewManager.loadModelTree()">
                             <option value="">Select a model...</option>
                         </select>
-                        <button onclick="window.TreeViewManager.loadModels()" class="btn btn-secondary">🔄 Refresh</button>
                     </div>
                     
                     <div class="tree-actions">
+                        <button onclick="window.TreeViewManager.loadModels()" class="btn btn-secondary">🔄 Refresh</button>
                         <button onclick="window.TreeViewManager.expandAllNodes()" class="btn btn-secondary">📖 Expand All</button>
                         <button onclick="window.TreeViewManager.collapseAllNodes()" class="btn btn-secondary">📕 Collapse All</button>
                         <button onclick="window.TreeViewManager.exportTreeData()" class="btn btn-primary">💾 Export Tree</button>
@@ -262,28 +267,33 @@
                         </div>
                     </div>
 
-                    <!-- Hierarchy Deletion Section -->
-                    <div class="bulk-section" id="hierarchySection" style="display: none;">
-                        <h3>🗑️ Hierarchy-Based Deletion</h3>
+                    <!-- Field-Based Deletion Section -->
+                    <div class="bulk-section" id="fieldDeletionSection" style="display: none;">
+                        <h3>🗑️ Field-Based Deletion</h3>
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="hierarchyType">Hierarchy Type:</label>
-                                <select id="hierarchyType" class="form-control">
-                                    <option value="">Select hierarchy type...</option>
-                                    <option value="Area Path">Area Path</option>
-                                    <option value="Iteration Path">Iteration Path</option>
+                                <label for="deleteField">Target Field:</label>
+                                <select id="deleteField" class="form-control">
+                                    <option value="">Select field for deletion criteria...</option>
                                 </select>
                             </div>
-                            <div class="form-group">
-                                <label for="hierarchyValue">Hierarchy Value:</label>
-                                <input type="text" id="hierarchyValue" class="form-control" placeholder="Enter path value to delete...">
+                        </div>
+                        
+                        <div id="deleteForm" style="display: none;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="deleteValue">Field Value:</label>
+                                    <select id="deleteValue" class="form-control">
+                                        <option value="">Select value to delete...</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button onclick="window.BulkOperations.deleteByFieldValue()" class="btn btn-danger">🗑️ Delete Items</button>
                             </div>
                         </div>
-                        <div class="form-actions">
-                            <button onclick="window.BulkOperations.deleteByHierarchy()" class="btn btn-danger">🗑️ Delete Items</button>
-                        </div>
                         <div class="warning-message">
-                            <p>⚠️ <strong>Hierarchy Protection:</strong> Items with children will be automatically protected from deletion.</p>
+                            <p>⚠️ <strong>Warning:</strong> This will permanently delete all work items matching the selected field and value. This operation cannot be undone!</p>
                         </div>
                     </div>
                 </div>
